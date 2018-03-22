@@ -32,11 +32,11 @@ for row in rows:
         trans.append(cols1)
 
 shared_tips= {
-    'Owner'  : 0.03,
+    # both breakage and BOH
+    'Owner'  : 0.08,
     'Busser' : 0.10,
     'Food Runner' : 0.05,
     'Hostess' : 0.02,
-    'BOH' : 0.05,
     'Bartender': 0.05,
 }
 
@@ -49,30 +49,34 @@ for name, shifts in shift.iteritems():
         report[name]['pay'] += float(s['Pay'][1:])
 # go over all the shift details
 for t in trans:
-    report[t['Staff']]['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
+    #report[t['Staff']]['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
     if t['Name'] == 'Cash':
         report[t['Staff']]['cash'] += float(t['Payment Amount'][1:])
 
-    # now find how many similar employee worked at the same time.
-    worked = 0
-    for name, val in shift.iteritems():
-        if val[0]['Staff Type'] not in shared_tips.keys(): continue
-        #iterate over the shifts
-        for s in val:
-            tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
-            fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-            to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
-            if  fr <= tran and tran <= to:
-                worked += 1
-    for name, val in shift.iteritems():
-        if val[0]['Staff Type'] not in shared_tips.keys(): continue
-        #iterate over the shifts
-        for s in val:
-            tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
-            fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-            to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
-            if  fr <= tran and tran <= to:
-                report[name]['tips'] += float(t['Tip'][1:])*shared_tips[s['Staff Type']] / worked
+    #distribute the tips amongst the helpers
+    for staff in shared_tips.keys():
+        worked = 0
+        for name, val in shift.iteritems():
+            if val[0]['Staff Type'] != staff: continue
+            #iterate over the shifts
+            for s in val:
+                tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+                fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                if  fr <= tran and tran <= to:
+                    worked += 1
+        if worked == 0:
+            report['Yogesh']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+#            print "No one worked as " + staff + " for bill " + t['Bill Number'] + " at " + t['Bill Date']
+        for name, val in shift.iteritems():
+            if val[0]['Staff Type'] != staff: continue
+            #iterate over the shifts
+            for s in val:
+                tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+                fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                if  fr <= tran and tran <= to:
+                    report[name]['tips'] += (float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]) / worked
                 
 
 print "{:<30} {:<15} {:<15} {:<10}  {:<10}  {:<10} ".format('Name','Hours','Pay', 'tips','cash-advance', 'Total')
