@@ -76,6 +76,12 @@ for t in trans:
                 
 
 print "{:<30} {:<15} {:<15} {:<10}  {:<10}  {:<10} ".format('Name','Hours','Pay', 'tips','cash-advance', 'Total')
+hours, pay, tips, cash = 0.0, 0.0, 0.0, 0.0
 for k, v in report.iteritems():
     print "{:<30} {:<15} {:<15} {:<10}  {:<10}  {:<10}".format(k, v['hours'], v['pay'], v['tips'], v['cash'], v['pay'] + v['tips']- v['cash'])
+    hours += v['hours']
+    pay += v['pay']
+    tips += v['tips']
+    cash += v['cash']
     
+print "{:<30} {:<15} {:<15} {:<10}  {:<10}  {:<10}".format("Total", hours, pay, tips, cash, hours+pay+tips+cash)
