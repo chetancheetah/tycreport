@@ -3,9 +3,9 @@ import csv
 from datetime import datetime
 import operator
 
-shift = {'House' : [
-    {'Name' : 'House',
-     'Staff Type' : 'Owner',
+shift = {'Kitchen' : [
+    {'Name' : 'Kitchen',
+     'Staff Type' : 'Kitchen',
      'Clock-In' : '2000-01-01 00:00',
      'Clock-Out': '2100-01-01 00:00',
      'Duration' : '0.0',
@@ -26,6 +26,7 @@ for row in rows:
     if 'REPORT' in row:
         s = 0
         continue
+    row = row.replace('Admin', 'Kitchen')
     cols = row.split(',')
     cols1 = {}
     i = 0
@@ -43,14 +44,14 @@ for row in rows:
 
 shared_tips= {
     # both breakage and BOH
-    'Owner'  : 0.08,
+    'Kitchen'  : 0.08,
     'Busser' : 0.10,
     'Food Runner' : 0.05,
     'Hostess' : 0.02,
     'Bartender': 0.05,
 }
 
-report = {'Admin':{'type':'House', 'hours':0.0, 'pay':0.0, 'tips':0.0, 'cash':0.0}}
+report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'pay':0.0, 'tips':0.0, 'cash':0.0}}
 for u in shift.keys(): report[u] = {'type':shift[u][0]['Staff Type'],'hours':0.0, 'pay': 0.0, 'tips':0.0, 'cash':0.0}
 
 for name, shifts in shift.iteritems():
@@ -59,7 +60,10 @@ for name, shifts in shift.iteritems():
         report[name]['pay'] += float(s['Pay'][1:])
 # go over all the shift details
 for t in trans:
-    report[t['Staff']]['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
+    if t['Staff'] not in report.keys() :
+        report['Kitchen']['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
+    else:
+        report[t['Staff']]['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
     if t['Name'] == 'Cash':
         report[t['Staff']]['cash'] += float(t['Payment Amount'][1:])
 
@@ -76,7 +80,8 @@ for t in trans:
                 if  fr <= tran and tran <= to:
                     worked += 1
         if worked == 0:
-            report['House']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+            report['Kitchen']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+            continue
 #            print "No one worked as " + staff + " for bill " + t['Bill Number'] + " at " + t['Bill Date']
         for name, val in shift.iteritems():
             if val[0]['Staff Type'] != staff: continue
@@ -92,7 +97,7 @@ for t in trans:
 
 print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10}  {:<10} ".format('Name','Type', 'Hours','Pay', 'tips','cash-advance', 'Total')
 hours, pay, tips, cash = 0.0, 0.0, 0.0, 0.0
-for k, v in sorted(report.items()):
+for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
     print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10}  {:<10} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['cash'], v['pay'] + v['tips']- v['cash'])
     hours += v['hours']
     pay += v['pay']
