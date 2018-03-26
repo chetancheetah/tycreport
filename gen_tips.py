@@ -76,7 +76,10 @@ for t in trans:
             for s in val:
                 tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
                 fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                if s['Clock-Out'] == "\"\"":
+                    to = datetime.now()
+                else:
+                    to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
                 if  fr <= tran and tran <= to:
                     worked += 1
         if worked == 0:
@@ -89,7 +92,10 @@ for t in trans:
             for s in val:
                 tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
                 fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                if s['Clock-Out'] == "\"\"":
+                    to =  datetime.now()
+                else:
+                    to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
                 if  fr <= tran and tran <= to:
                     report[name]['tips'] += (float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]) / worked
                 
