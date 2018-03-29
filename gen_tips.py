@@ -3,6 +3,31 @@ import csv
 from datetime import datetime
 import operator
 
+emails = {
+    'Surendra' : '',
+    'Kawika' : '',
+    'Oscar' : '',
+    'Misael' : '',
+    'Jose' : '',
+    'Vinay' : '',
+    'Udit' : '',
+    'Dhruti' : '',
+    'Shruti' : '',
+    'Jeslyn' : '',
+    'Kitchen' : '',
+    'Adrian' : '',
+    'Shiva' : '',
+    'Daniella' : '',
+    'Joseph' : '',
+    'Custodio' : '',
+    'James' : '',
+    'Deepak' : '',
+    'Jaspreet' : '',
+    'Albert' : '',
+    'Prabesh' : '',
+    'Martin' : '',
+}
+
 shift = {'Kitchen' : [
     {'Name' : 'Kitchen',
      'Staff Type' : 'Kitchen',
@@ -83,7 +108,11 @@ for t in trans:
                 if  fr <= tran and tran <= to:
                     worked += 1
         if worked == 0:
-            report['Kitchen']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+            # if there was no busser  or food runner then assumption the server would have bussed
+            if staff == 'Busser' or staff == 'Food Runner':
+                report[t['Staff']]['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+            else:
+                report['Kitchen']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
             continue
 #            print "No one worked as " + staff + " for bill " + t['Bill Number'] + " at " + t['Bill Date']
         for name, val in shift.iteritems():
