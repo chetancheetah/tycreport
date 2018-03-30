@@ -1,30 +1,45 @@
-Name                           Type            Hours      Pay        tips        cash-advance  Total      
-Edwin                          BOH             12.96      174.96     0.0         0.0         174.96     
-Jaime F                        BOH             153.31     1837.0     0.0         0.0         1837.0     
-Jorge V                        BOH             151.1      335.48     0.0         0.0         335.48     
-Hugo L                         BOH             36.78      496.54     0.0         0.0         496.54     
-Surendra                       Bartender       65.52      884.55     223.33925   6.54        1101.34925 
-Kawika                         Bartender       11.29      152.42     48.62075    0.0         201.04075  
-Andreyy  h                     Busser          6.39       86.27      0.0         0.0         86.27      
-Oscar                          Busser          41.1       554.87     155.551     0.0         710.421    
-Misael                         Busser          59.05      797.2      294.551     0.0         1091.751   
-Jose F                         Busser          25.6       345.62     104.984     0.0         450.604    
-Vinay                          Food Runner     59.33      801.0      143.446     0.0         944.446    
-Udit                           Food Runner     68.16      920.19     213.7       0.0         1133.89    
-Dhruti                         Hostess         21.0       283.51     13.1686     0.0         296.6786   
-Shruti                         Hostess         3.13       0.0        6.3748      0.0         6.3748     
-Jeslyn                         Hostess         40.02      540.3      97.7539     0.0         638.0539   
-Kitchen                        Kitchen         0.0        0.0        931.4747    0.0         931.4747   
-Adrian                         Manager         77.13      0.0        39.9        52.52       -12.62     
-Martin                         Server          42.08      568.11     355.219     70.8        852.529    
-Shiva                          Server          84.11      1135.53    734.0855    132.87      1736.7455  
-Daniella                       Server          46.44      626.97     549.506     0.0         1176.476   
-Joseph G                       Server          55.89      754.55     414.507     96.93       1072.127   
-Custodio                       Server          31.62      426.89     73.171      46.82       453.241    
-James d                        Server          60.73      819.89     407.074     254.84      972.124    
-Deepak                         Server          87.27      1178.2     737.2395    31.57       1883.8695  
-Jaspreet                       Server          96.58      1303.88    1712.357    267.11      2749.127   
-Albert F                       Server          16.84      227.36     28.2        0.0         255.56     
-Prabesh                        Server          45.36      612.4      263.167     20.7        854.867    
-Lisa                           Server          0.46       6.21       0.0         0.0         6.21       
-Total                                          1399.25    15869.9    7547.39     980.7       23835.84   
+Sending mail to Surendra at khatisurendrea88@gmail.com
+Sending mail to Oscar at o.navarrete517@gmail.com
+Sending mail to Jose F at brack98.21@gmail.com
+Sending mail to Vinay at vinu3388@gmail.com
+Sending mail to Udit at udit.hemani21@gmail.com
+Sending mail to Jeslyn at Jeslynhkim@gmail.com
+Sending mail to Adrian at tycscmanager@gmail.com
+Sending mail to Martin at olvera.martin1@yahoo.com
+Sending mail to Shiva at omsivashan@gmail.com
+Sending mail to Daniella at Danielakaterina31@gmail.com
+Sending mail to Joseph G at josephgonsalves2418@gmail.com
+Sending mail to James d at dsouzapjames@gmail.com
+Sending mail to Deepak at fadinradhakalusa@gmail.com
+Sending mail to Jaspreet at jassa2024@gmail.com
+Sending mail to Prabesh at prabeshpokhrel32@gmail.com
+Name                           Type            Hours      Pay        tips        extra-tips cash-advance  Total      
+Edwin                          BOH             12.96      174.96     0.0         0.0        0.0         174.96     
+Jaime F                        BOH             160.94     1940.0     0.0         0.0        0.0         1940.0     
+Jorge V                        BOH             151.98     347.37     0.0         0.0        0.0         347.37     
+Hugo L                         BOH             37.62      507.88     0.0         0.0        0.0         507.88     
+Surendra                       Bartender       65.52      884.55     220.45625   2.883      6.54        1101.34925 
+Kawika                         Bartender       11.29      152.42     48.62075    0.0        0.0         201.04075  
+Andreyy  h                     Busser          6.39       86.27      0.0         0.0        0.0         86.27      
+Oscar                          Busser          46.48      627.5      170.6425    0.0        0.0         798.1425   
+Misael                         Busser          64.73      873.88     309.6425    0.0        0.0         1183.5225  
+Jose F                         Busser          25.6       345.62     104.984     0.0        0.0         450.604    
+Vinay                          Food Runner     65.35      882.28     151.24175   0.0        0.0         1033.52175 
+Udit                           Food Runner     72.25      975.41     220.99575   0.0        0.0         1196.40575 
+Dhruti                         Hostess         21.0       283.51     12.8906     0.278      0.0         296.6786   
+Shruti                         Hostess         3.13       0.0        6.3748      0.0        0.0         6.3748     
+Jeslyn                         Hostess         40.02      540.3      97.3254     0.4285     0.0         638.0539   
+Kitchen                        Kitchen         0.0        0.0        975.2412    1.508      0.0         976.7492   
+Adrian                         Manager         77.13      0.0        37.1        2.8        52.52       -12.62     
+Martin                         Server          46.96      633.99     362.887     29.586     70.8        955.663    
+Shiva                          Server          84.11      1135.53    721.553     12.5325    132.87      1736.7455  
+Daniella                       Server          46.44      626.97     534.884     14.622     0.0         1176.476   
+Joseph G                       Server          61.08      824.62     443.485     8.094      96.93       1179.269   
+Custodio                       Server          31.62      426.89     73.171      0.0        46.82       453.241    
+James d                        Server          65.58      885.37     431.956     2.894      254.84      1065.38    
+Deepak                         Server          90.93      1227.61    701.134     36.1055    31.57       1933.2795  
+Jaspreet                       Server          102.13     1378.81    1731.548    89.988     267.11      2933.236   
+Albert F                       Server          16.84      227.36     25.025      3.175      0.0         255.56     
+Prabesh                        Server          45.36      612.4      248.185     14.982     20.7        854.867    
+Lisa                           Server          0.46       6.21       0.0         0.0        0.0         6.21       
+Total                                          1453.9     16607.71   7629.3435   219.8765   980.7       24930.13   
