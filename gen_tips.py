@@ -6,9 +6,6 @@ import subprocess
 import json
 
 result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
-
-#p = subprocess.Popen(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'], stdout=subprocess.PIPE)
-#out, err = p.communicate()
 result = json.loads(result)
 
 shift = {'Kitchen' : [
@@ -22,7 +19,8 @@ shift = {'Kitchen' : [
  } ]}
 trans = []
 
-with open(sys.argv[1]) as f:
+#read the shift details and the bills
+with open(sys.argv[2]) as f:
     rows = f.readlines()
 s = 1
 for row in rows:
@@ -50,17 +48,18 @@ for row in rows:
     else:
         trans.append(cols1)
 
+#how to share
 shared_tips= {
-    # both breakage and BOH
-    'Kitchen'  : 0.08,
-    'Busser' : 0.10,
-    'Food Runner' : 0.05,
-    'Hostess' : 0.02,
-    'Bartender': 0.05,
+    'Kitchen'  : 0.08,   #  8%
+    'Busser' : 0.10,     # 10%
+    'Food Runner' : 0.05,#  5%
+    'Hostess' : 0.02,    #  2%
+    'Bartender': 0.05,   #  5%
 }
 
-report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'pay':0.0, 'tips':0.0, 'cash':0.0}}
-for u in shift.keys(): report[u] = {'type':shift[u][0]['Staff Type'],'hours':0.0, 'pay': 0.0, 'tips':0.0, 'cash':0.0}
+report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'pay':0.0, 'tips':0.0, 'extra-tips':0.0, 'cash':0.0}}
+
+for u in shift.keys(): report[u] = {'type':shift[u][0]['Staff Type'],'hours':0.0, 'pay': 0.0, 'tips':0.0, 'extra-tips':0.0, 'cash':0.0}
 
 for name, shifts in shift.iteritems():
     for s in shifts:
@@ -93,7 +92,7 @@ for t in trans:
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
             if staff == 'Busser' or staff == 'Food Runner':
-                report[t['Staff']]['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+                report[t['Staff']]['extra-tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
             continue
@@ -111,15 +110,49 @@ for t in trans:
                 if  fr <= tran and tran <= to:
                     report[name]['tips'] += (float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]) / worked
                 
+emails={}
+for e in result['data']:
+    if e['user']['email'] == '': continue
+    emails[e['user']['firstname'].lower()] = e['user']['email']
 
+import smtplib
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
 
-print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10}  {:<10} ".format('Name','Type', 'Hours','Pay', 'tips','cash-advance', 'Total')
-hours, pay, tips, cash = 0.0, 0.0, 0.0, 0.0
+import time
+ts = time.gmtime()
+ 
+fromaddr = "tycscmanager@gmal.com"
+toaddr = "tycscreports@gmail.com"
+ 
+server = smtplib.SMTP('smtp.gmail.com', 587)
+server.starttls()
+server.login("tycscreports@gmail.com", sys.argv[1])
+
 for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
-    print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10}  {:<10} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['cash'], v['pay'] + v['tips']- v['cash'])
+    if k.lower() not in emails.keys(): continue
+    msg = MIMEMultipart()
+    msg['From'] = fromaddr
+    #toaddr = emails[k.lower()]
+    #msg['To'] = toaddr
+    msg['To'] = toaddr
+    msg['Subject'] = "[Yellow Chilli] Earning for " + time.strftime("%c", ts)
+    body = "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} \n".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
+    body += "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    msg.attach(MIMEText(body, 'plain'))
+    text = msg.as_string()
+    server.sendmail(fromaddr, toaddr, text)
+    print "Sending mail to " + k + " at " + emails[k.lower()]
+server.quit()
+
+print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
+hours, pay, tips, extra_tips, cash = 0.0, 0.0, 0.0, 0.0, 0.0
+for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
+    print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
     hours += v['hours']
     pay += v['pay']
     tips += v['tips']
+    extra_tips += v['extra-tips']
     cash += v['cash']
     
-print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10}  {:<10} ".format("Total", "", hours, pay, tips, cash, hours+pay+tips-cash)
+print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format("Total", "", hours, pay, tips, extra_tips, cash, hours+pay+tips+extra_tips-cash)
