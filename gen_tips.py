@@ -2,31 +2,14 @@ import sys
 import csv
 from datetime import datetime
 import operator
+import subprocess
+import json
 
-emails = {
-    'Surendra' : '',
-    'Kawika' : '',
-    'Oscar' : '',
-    'Misael' : '',
-    'Jose' : '',
-    'Vinay' : '',
-    'Udit' : '',
-    'Dhruti' : '',
-    'Shruti' : '',
-    'Jeslyn' : '',
-    'Kitchen' : '',
-    'Adrian' : '',
-    'Shiva' : '',
-    'Daniella' : '',
-    'Joseph' : '',
-    'Custodio' : '',
-    'James' : '',
-    'Deepak' : '',
-    'Jaspreet' : '',
-    'Albert' : '',
-    'Prabesh' : '',
-    'Martin' : '',
-}
+result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
+
+#p = subprocess.Popen(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'], stdout=subprocess.PIPE)
+#out, err = p.communicate()
+result = json.loads(result)
 
 shift = {'Kitchen' : [
     {'Name' : 'Kitchen',
