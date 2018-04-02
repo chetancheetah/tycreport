@@ -19,13 +19,16 @@ shift = {'Kitchen' : [
  } ]}
 trans = []
 
+date = ""
 #read the shift details and the bills
 with open(sys.argv[2]) as f:
     rows = f.readlines()
 s = 1
 for row in rows:
     row = row.replace('\n','')
-    if 'theyellow' in row: continue
+    if 'theyellow' in row:
+        if s: date = row
+        continue
     if 'Name' in row:
         keys = row.split(',')
         continue
@@ -47,6 +50,8 @@ for row in rows:
             shift[cols1['Name']] = [cols1]
     else:
         trans.append(cols1)
+
+date = date.split('-')
 
 #how to share
 shared_tips= {
@@ -72,7 +77,7 @@ for t in trans:
     else:
         report[t['Staff']]['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
     if t['Name'] == 'Cash':
-        report[t['Staff']]['cash'] += float(t['Payment Amount'][1:])
+        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += float(t['Payment Amount'][1:])
 
     #distribute the tips amongst the helpers
     for staff in shared_tips.keys():
@@ -92,7 +97,7 @@ for t in trans:
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
             if staff == 'Busser' or staff == 'Food Runner':
-                report[t['Staff']]['extra-tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+                report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
             continue
@@ -130,18 +135,21 @@ server.starttls()
 server.login("tycscreports@gmail.com", sys.argv[1])
 
 for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
-    if k.lower() not in emails.keys(): continue
+    if k.lower() not in emails.keys():
+        print "Need email for " + k
+        continue
     msg = MIMEMultipart()
     msg['From'] = fromaddr
-    #toaddr = emails[k.lower()]
-    #msg['To'] = toaddr
+    toaddr = emails[k.lower()]
     msg['To'] = toaddr
-    msg['Subject'] = "[Yellow Chilli] Earning for " + time.strftime("%c", ts)
+    msg['Subject'] = "[Yellow Chilli] Earning from %s/%s to %s/%s" % (date[4], date[5], date[7], date[8])
     body = "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} \n".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
-    body += "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    body += "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} \n".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    body += "\n\nPaycheck will be run every two weeks and checks will be given on Tuesday \n Regards TYC"
+    body += "\n\nEvery server keeps his tips and gives\n (10% - busser, 5% food runner, 8% kitchen, 5% bartender, 2% host),\n If there is no busser or food runner and server has to bus and run the food and he will keep that share with himself (shown in extra-tips)\n\n\n Please contact the Manager if there is any issue with the calculation\n"
     msg.attach(MIMEText(body, 'plain'))
     text = msg.as_string()
-    server.sendmail(fromaddr, toaddr, text)
+    #server.sendmail(fromaddr, toaddr, text)
     print "Sending mail to " + k + " at " + emails[k.lower()]
 server.quit()
 
