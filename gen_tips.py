@@ -67,6 +67,7 @@ report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'pay':0.0, 'tips':0.0, 'extr
 for u in shift.keys(): report[u] = {'type':shift[u][0]['Staff Type'],'hours':0.0, 'pay': 0.0, 'tips':0.0, 'extra-tips':0.0, 'cash':0.0}
 
 for name, shifts in shift.iteritems():
+    report[name]['shifts'] = shifts
     for s in shifts:
         report[name]['hours'] += float(s['Duration'])
         report[name]['pay'] += float(s['Pay'][1:])
@@ -140,27 +141,33 @@ for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
         continue
     msg = MIMEMultipart()
     msg['From'] = fromaddr
-    toaddr = emails[k.lower()]
+    if sys.argv[3] == 'yes':
+        toaddr = emails[k.lower()]
     msg['To'] = toaddr
     msg['Subject'] = "[Yellow Chilli] Earning from %s/%s to %s/%s" % (date[4], date[5], date[7], date[8])
-    body = "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} \n".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
-    body += "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} \n".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    body = "Shift Details\n\n"
+    body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15}(hours) {:>15}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'Duration', 'Hourly Rate', 'Pay')
+    for s in v['shifts']:
+        body += "{:>30} {:>15} {:>15} {:>15} {:>15}hours  {:>15} {:>15}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'])
+    body += "\n\nPay Details\n\n"
+    body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} \n".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
+    body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} \n".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
     body += "\n\nPaycheck will be run every two weeks and checks will be given on Tuesday \n Regards TYC"
     body += "\n\nEvery server keeps his tips and gives\n (10% - busser, 5% food runner, 8% kitchen, 5% bartender, 2% host),\n If there is no busser or food runner and server has to bus and run the food and he will keep that share with himself (shown in extra-tips)\n\n\n Please contact the Manager if there is any issue with the calculation\n"
     msg.attach(MIMEText(body, 'plain'))
     text = msg.as_string()
-    #server.sendmail(fromaddr, toaddr, text)
+    server.sendmail(fromaddr, toaddr, text)
     print "Sending mail to " + k + " at " + emails[k.lower()]
 server.quit()
 
-print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
+print "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format('Name','Type', 'Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
 hours, pay, tips, extra_tips, cash = 0.0, 0.0, 0.0, 0.0, 0.0
 for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
-    print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    print "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format(k, v['type'], v['hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
     hours += v['hours']
     pay += v['pay']
     tips += v['tips']
     extra_tips += v['extra-tips']
     cash += v['cash']
     
-print "{:<30} {:<15} {:<10} {:<10} {:<10}  {:<10} {:<10}  {:<10} ".format("Total", "", hours, pay, tips, extra_tips, cash, hours+pay+tips+extra_tips-cash)
+print "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format("Total", "", hours, pay, tips, extra_tips, cash, hours+pay+tips+extra_tips-cash)
