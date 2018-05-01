@@ -158,10 +158,10 @@ for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
         continue
     msg = MIMEMultipart()
     msg['From'] = fromaddr
-    #if sys.argv[3] == 'yes':
+    if sys.argv[3] == 'no':
         #toaddr = emails[k.lower()]
     #else:
-        #break
+        break
     msg['To'] = toaddr
     msg['Subject'] = "[Yellow Chilli] Earning from %s/%s to %s/%s" % (date[4], date[5], date[7], date[8])
     body = "Shift Details\n\n"
