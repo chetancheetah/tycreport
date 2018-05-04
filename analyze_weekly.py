@@ -54,16 +54,16 @@ for d in days:
                 'labor'      : 0.0,
                 'orders'     : 0,
                 'seats'      : 0,
-                'servers'    : 0,
-                'bartenter'  : 0,
+                'server'    : 0,
+                'bartender'  : 0,
                 'busser'     : 0,
                 'hostess'    : 0,
-                'food-runner': 0,
+                'food runner': 0,
             }
 str = '\t,'
 hdr = 'Time\t,'
-stats = ''
-for s in sorted(report['Mon']['cur'][8].keys()): stats += ','+s
+stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
+#for s in sorted(report['Mon']['cur'][8].keys()): stats += ','+s
 for d in days:
     str += d + ',,,   ' 
     hdr += stats
@@ -77,11 +77,20 @@ for h in range(8,24):
     elif h == 10:
         str = "Dinner"
     else:
-        str = "%d:00-%d:00,"%(h,h+1)
+        str = "%d:00-%d:00"%(h,h+1)
     sys.stdout.write(str)
     for w in when:
         line = "\t,"+w+","
         for d in days:
-            for s in sorted(report['Mon']['cur'][8].keys()):
-                line += "%d"%report[d][w][h][s] + ","
+            #stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
+            line += "%d,%d,%d,%d,(%d/%d/%d/%d/%d),"%(
+                report[d][w][h]['sales'],
+                report[d][w][h]['labor'],
+                report[d][w][h]['orders'],
+                report[d][w][h]['seats'],
+                report[d][w][h]['server'],
+                report[d][w][h]['bartender'],
+                report[d][w][h]['busser'],
+                report[d][w][h]['hostess'],
+                report[d][w][h]['food runner'], )
         print line
