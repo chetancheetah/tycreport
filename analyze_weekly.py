@@ -53,8 +53,8 @@ for d in days:
             report[d][w][h] = {
                 'sales'      : 0.0,
                 'labor'      : 0.0,
-                'orders'     : 0,
-                'seats'      : 0,
+#                'orders'     : 0,
+#                'seats'      : 0,
                 'Server'     : 0,
                 'Bartender'  : 0,
                 'Busser'     : 0,
@@ -95,10 +95,10 @@ for t in trans:
 
 str = ','
 hdr = 'Time,,'
-stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
-#for s in sorted(report['Mon']['cur'][8].keys()): stats += ','+s
+#stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
+stats = 'sales,labor,Staff(S/B/B/H/F),'
 for d in days:
-    str += d + ',,,,,   ' 
+    str += d + ',,,   ' 
     hdr += stats
 print str
 print hdr
@@ -116,11 +116,11 @@ for h in range(8,24):
         line = "\t,"+("week-%d"%w)+","
         for d in days:
             #stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
-            line += "%d,%d,%d,%d,(%d/%d/%d/%d/%d),"%(
+            line += "%d,%d,(%d/%d/%d/%d/%d),"%(
                 report[d][w][h]['sales'],
                 report[d][w][h]['labor'],
-                report[d][w][h]['orders'],
-                report[d][w][h]['seats'],
+#                report[d][w][h]['orders'],
+#                report[d][w][h]['seats'],
                 report[d][w][h]['Server'],
                 report[d][w][h]['Bartender'],
                 report[d][w][h]['Busser'],
