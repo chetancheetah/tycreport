@@ -41,12 +41,13 @@ date = date.split('-')
 total=8
 lunch=9
 dinner=10
-days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 report = {}
-when = ['cur', 'last', 'avg']
+
+tw = datetime.now().isocalendar()[1]
 for d in days:
     report[d] = {}
-    for w in when:
+    for w in range(tw-5,tw+1):
         report[d][w] = {}
         for h in range(8,24):
             report[d][w][h] = {
@@ -54,18 +55,50 @@ for d in days:
                 'labor'      : 0.0,
                 'orders'     : 0,
                 'seats'      : 0,
-                'server'    : 0,
-                'bartender'  : 0,
-                'busser'     : 0,
-                'hostess'    : 0,
-                'food runner': 0,
+                'Server'     : 0,
+                'Bartender'  : 0,
+                'Busser'     : 0,
+                'Hostess'    : 0,
+                'Food Runner': 0,
             }
-str = '\t,'
-hdr = 'Time\t,'
+
+for i in shift:
+    for s in shift[i]:
+        fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+        to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+        wd = fr.strftime("%A")
+        week = fr.isocalendar()[1]
+        t = s['Staff Type']
+        if t not in report[wd][week][fr.hour].keys(): continue
+        report[wd][week][8][t] += 1
+        pay = float(s['Pay'][1:])
+        report[wd][week][8]['labor'] += pay
+        if to.hour < 18:
+            report[wd][week][9][t] += 1
+            report[wd][week][9]['labor'] += pay
+        else:
+            report[wd][week][10][t] += 1
+            report[wd][week][10]['labor'] += pay
+        for i in range(fr.hour, to.hour+1):
+            report[wd][week][i][t] += 1
+
+for t in trans:
+    tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+    wd = tran.strftime("%A")
+    week = tran.isocalendar()[1]
+    amt = float(t['Applied to Bill'][1:])/1.09
+    report[wd][week][8]['sales'] += amt
+    if tran.hour < 18:
+        report[wd][week][9]['sales'] += amt
+    else:
+        report[wd][week][10]['sales'] += amt
+
+str = ','
+hdr = 'Time,,'
 stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
 #for s in sorted(report['Mon']['cur'][8].keys()): stats += ','+s
 for d in days:
-    str += d + ',,,   ' 
+    str += d + ',,,,,   ' 
     hdr += stats
 print str
 print hdr
@@ -79,8 +112,8 @@ for h in range(8,24):
     else:
         str = "%d:00-%d:00"%(h,h+1)
     sys.stdout.write(str)
-    for w in when:
-        line = "\t,"+w+","
+    for w in range(tw-5,tw+1):
+        line = "\t,"+("week-%d"%w)+","
         for d in days:
             #stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
             line += "%d,%d,%d,%d,(%d/%d/%d/%d/%d),"%(
@@ -88,9 +121,9 @@ for h in range(8,24):
                 report[d][w][h]['labor'],
                 report[d][w][h]['orders'],
                 report[d][w][h]['seats'],
-                report[d][w][h]['server'],
-                report[d][w][h]['bartender'],
-                report[d][w][h]['busser'],
-                report[d][w][h]['hostess'],
-                report[d][w][h]['food runner'], )
+                report[d][w][h]['Server'],
+                report[d][w][h]['Bartender'],
+                report[d][w][h]['Busser'],
+                report[d][w][h]['Hostess'],
+                report[d][w][h]['Food Runner'], )
         print line
