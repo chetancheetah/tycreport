@@ -86,7 +86,7 @@ for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
     wd = tran.strftime("%A")
     week = tran.isocalendar()[1]
-    amt = float(t['Applied to Bill'][1:])/1.09
+    amt = float(t['Subtotal with Tax'][1:])/1.09
     report[wd][week][8]['sales'] += amt
     if tran.hour < 18:
         report[wd][week][9]['sales'] += amt
