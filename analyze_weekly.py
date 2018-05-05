@@ -43,11 +43,15 @@ lunch=9
 dinner=10
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 report = {}
-
-tw = datetime.now().isocalendar()[1]
+dt="%s-%s-%s"%(date[3], date[4], date[5])
+fr = datetime.strptime(dt, '%Y-%m-%d')
+dt="%s-%s-%s"%(date[6], date[7], date[8])
+to = datetime.strptime(dt, '%Y-%m-%d')
+fw = fr.isocalendar()[1]
+tw = to.isocalendar()[1]
 for d in days:
     report[d] = {}
-    for w in range(tw-5,tw+1):
+    for w in range(fw,tw+1):
         report[d][w] = {}
         for h in range(8,24):
             report[d][w][h] = {
@@ -65,13 +69,16 @@ for d in days:
 for i in shift:
     for s in shift[i]:
         fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-        to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+        if s['Clock-Out'] == "\"\"":
+            to = datetime.now()
+        else:
+            to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
         wd = fr.strftime("%A")
         week = fr.isocalendar()[1]
         t = s['Staff Type']
         if t not in report[wd][week][fr.hour].keys(): continue
         report[wd][week][8][t] += 1
-        pay = float(s['Pay'][1:])
+        pay = float(s['Pay'].split('$')[1])
         report[wd][week][8]['labor'] += pay
         if to.hour < 18:
             report[wd][week][9][t] += 1
@@ -86,14 +93,15 @@ for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
     wd = tran.strftime("%A")
     week = tran.isocalendar()[1]
-    amt = float(t['Subtotal with Tax'][1:])/1.09
+    amt = float(t['Subtotal with Tax'].split('$')[1])/1.09
     report[wd][week][8]['sales'] += amt
     if tran.hour < 18:
         report[wd][week][9]['sales'] += amt
     else:
         report[wd][week][10]['sales'] += amt
+    report[wd][week][tran.hour]['sales'] += 1
 
-str = ','
+str = ',,'
 hdr = 'Time,,'
 #stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
 stats = 'sales,labor,Staff(S/B/B/H/F),'
@@ -112,7 +120,7 @@ for h in range(8,24):
     else:
         str = "%d:00-%d:00"%(h,h+1)
     sys.stdout.write(str)
-    for w in range(tw-5,tw+1):
+    for w in range(fw,tw+1):
         line = "\t,"+("week-%d"%w)+","
         for d in days:
             #stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
@@ -127,3 +135,4 @@ for h in range(8,24):
                 report[d][w][h]['Hostess'],
                 report[d][w][h]['Food Runner'], )
         print line
+    print ""
