@@ -3,7 +3,7 @@ import csv
 from datetime import datetime
 
 shift = {}
-trans = []
+trans = {}
 
 date = ""
 #read the shift details and the bills
@@ -35,7 +35,14 @@ for row in rows:
         else:
             shift[cols1['Name']] = [cols1]
     else:
-        trans.append(cols1)
+        if cols1['Order Number'] not in trans.keys():
+            cols1['Tip'] = float(cols1['Tip'].split('$')[1])
+            cols1['Gratuity'] = float(cols1['Gratuity'].split('$')[1])
+            cols1['Applied to Bill'] = float(cols1['Applied to Bill'].split('$')[1])
+            trans[cols1['Order Number']] = cols1
+        else:
+            trans[cols1['Order Number']]['Tip'] += float(cols1['Tip'].split('$')[1])
+            trans[cols1['Order Number']]['Applied to Bill'] += float(cols1['Applied to Bill'].split('$')[1])
 
 date = date.split('-')
 total=8
@@ -90,10 +97,11 @@ for i in shift:
             report[wd][week][i][t] += 1
 
 for t in trans:
+    t = trans[t]
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
     wd = tran.strftime("%A")
     week = tran.isocalendar()[1]
-    amt = float(t['Subtotal with Tax'].split('$')[1])/1.09
+    amt = (t['Applied to Bill'] - t['Gratuity'])/1.09
     report[wd][week][8]['sales'] += amt
     if tran.hour < 18:
         report[wd][week][9]['sales'] += amt

@@ -5,6 +5,13 @@ import operator
 import subprocess
 import json
 
+def dollartofloat(s):
+    if '$' not in s: return s
+    if s[0] == '-':
+        return -float(s.split('$')[1])
+    return float(s.split('$')[1])
+
+
 result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
 result = json.loads(result)
 
@@ -14,11 +21,11 @@ shift = {'Kitchen' : [
      'Clock-In' : '2000-01-01 00:00',
      'Clock-Out': '2100-01-01 00:00',
      'Duration' : '0.0',
-     'Hourly Rate' : '0.0',
+     'Hourly Rate' : 0.0,
      'Pay' : '0.0',
  } ]}
 trans = []
-
+orders = {}
 date = ""
 #read the shift details and the bills
 with open(sys.argv[2]) as f:
@@ -40,7 +47,7 @@ for row in rows:
     cols1 = {}
     i = 0
     for col in cols:
-        cols1[keys[i]] = col
+        cols1[keys[i]] = dollartofloat(col)
         i += 1
     if s:
         if cols1['Staff Type'] == 'Owner': continue
@@ -49,6 +56,10 @@ for row in rows:
         else:
             shift[cols1['Name']] = [cols1]
     else:
+        # gratuity is duped in all the partial payments so remove it
+        if cols1['Order Number'] in orders.keys() and cols1['Type'] == 'Partial Payment':
+            cols1['Gratuity'] = 0.0
+        orders[cols1['Order Number']] = True
         trans.append(cols1)
 
 date = date.split('-')
@@ -61,6 +72,7 @@ shared_tips= {
     'Hostess' : 0.02,    #  2%
     'Bartender': 0.05,   #  5%
 }
+
 
 report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'extra-tips':0.0, 'cash':0.0}}
 
@@ -86,16 +98,16 @@ for name, shifts in shift.iteritems():
         ot_hours = 0.0 if s['hours'] <= 8.0 else (s['hours'] - 8.0)
         report[name]['hours'] += hours
         report[name]['ot-hours'] += ot_hours
-        rate = float(s['Hourly Rate'][1:])
+        rate = s['Hourly Rate']
         report[name]['pay'] += hours * rate + ot_hours*1.5*rate
 # go over all the shift details
 for t in trans:
     if t['Staff'] not in report.keys() :
-        report['Kitchen']['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
+        report['Kitchen']['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
     else:
-        report[t['Staff']]['tips'] += float(t['Tip'][1:])*0.7 + float(t['Gratuity'][1:])*0.7
+        report[t['Staff']]['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
     if t['Name'] == 'Cash':
-        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += float(t['Payment Amount'][1:])
+        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
 
     #distribute the tips amongst the helpers
     for staff in shared_tips.keys():
@@ -115,9 +127,9 @@ for t in trans:
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
             if staff == 'Busser' or staff == 'Food Runner':
-                report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+                report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             else:
-                report['Kitchen']['tips'] += float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]
+                report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             continue
 #            print "No one worked as " + staff + " for bill " + t['Bill Number'] + " at " + t['Bill Date']
         for name, val in shift.iteritems():
@@ -131,7 +143,7 @@ for t in trans:
                 else:
                     to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
                 if  fr <= tran and tran <= to:
-                    report[name]['tips'] += (float(t['Tip'][1:])*shared_tips[staff] + float(t['Gratuity'][1:])*shared_tips[staff]) / worked
+                    report[name]['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
                 
 emails={}
 for e in result['data']:
