@@ -2,8 +2,16 @@ import sys
 import csv
 from datetime import datetime
 
+def dollartofloat(s):
+    if '$' not in s: return s
+    if s[0] == '-':
+        return -float(s.split('$')[1])
+    return float(s.split('$')[1])
+
+
 shift = {}
-trans = {}
+trans = []
+orders = {}
 
 date = ""
 #read the shift details and the bills
@@ -26,7 +34,7 @@ for row in rows:
     cols1 = {}
     i = 0
     for col in cols:
-        cols1[keys[i]] = col
+        cols1[keys[i]] = dollartofloat(col)
         i += 1
     if s:
         if cols1['Staff Type'] == 'Owner': continue
@@ -35,14 +43,11 @@ for row in rows:
         else:
             shift[cols1['Name']] = [cols1]
     else:
-        if cols1['Order Number'] not in trans.keys():
-            cols1['Tip'] = float(cols1['Tip'].split('$')[1])
-            cols1['Gratuity'] = float(cols1['Gratuity'].split('$')[1])
-            cols1['Applied to Bill'] = float(cols1['Applied to Bill'].split('$')[1])
-            trans[cols1['Order Number']] = cols1
-        else:
-            trans[cols1['Order Number']]['Tip'] += float(cols1['Tip'].split('$')[1])
-            trans[cols1['Order Number']]['Applied to Bill'] += float(cols1['Applied to Bill'].split('$')[1])
+        # gratuity is duped in all the partial payments so remove it
+        if cols1['Order Number'] in orders.keys() and cols1['Type'] == 'Partial Payment':
+            cols1['Gratuity'] = 0.0
+        orders[cols1['Order Number']] = True
+        trans.append(cols1)
 
 date = date.split('-')
 total=8
@@ -85,7 +90,7 @@ for i in shift:
         t = s['Staff Type']
         if t not in report[wd][week][fr.hour].keys(): continue
         report[wd][week][8][t] += 1
-        pay = float(s['Pay'].split('$')[1])
+        pay = s['Pay']
         report[wd][week][8]['labor'] += pay
         if to.hour < 18:
             report[wd][week][9][t] += 1
@@ -97,7 +102,6 @@ for i in shift:
             report[wd][week][i][t] += 1
 
 for t in trans:
-    t = trans[t]
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
     wd = tran.strftime("%A")
     week = tran.isocalendar()[1]
@@ -107,7 +111,7 @@ for t in trans:
         report[wd][week][9]['sales'] += amt
     else:
         report[wd][week][10]['sales'] += amt
-    report[wd][week][tran.hour]['sales'] += 1
+    report[wd][week][tran.hour]['sales'] += amt
 
 str = ',,'
 hdr = 'Time,,'
