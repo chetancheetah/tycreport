@@ -165,6 +165,7 @@ server.starttls()
 server.login("tycscreports@gmail.com", sys.argv[1])
 
 for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
+
     if k.lower() not in emails.keys():
         print "Need email for " + k
         continue
@@ -193,7 +194,8 @@ server.quit()
 
 print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format('Name','Type', 'Hours', 'OT-hours', 'Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
 hours, ot_hours, pay, tips, extra_tips, cash = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
+#for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
+for k, v in sorted(report.items()):
     print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
     hours += v['hours']
     ot_hours += v['ot-hours']
