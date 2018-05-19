@@ -11,9 +11,13 @@ def dollartofloat(s):
         return -float(s.split('$')[1])
     return float(s.split('$')[1])
 
+need_user = None
 
-result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
-result = json.loads(result)
+if len(sys.argv) == 4:
+    need_user = sys.argv[3]
+
+#result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
+#result = json.loads(result)
 
 shift = {'Kitchen' : [
     {'Name' : 'Kitchen',
@@ -84,6 +88,8 @@ for name, shifts in shift.iteritems():
     old = {'hours':0.0}
     hours = 0.0
     for s in shifts:
+        s['tips'] = 0.0
+        s['extra-tips'] = 0.0
         s['hours'] = 0.0
         ndate = s['Clock-In'].split(' ')[0].split('-')[2]
         if dat != ndate:
@@ -102,6 +108,8 @@ for name, shifts in shift.iteritems():
         report[name]['pay'] += hours * rate + ot_hours*1.5*rate
 # go over all the shift details
 for t in trans:
+    if need_user and need_user != t['Staff']:
+        continue
     if t['Staff'] not in report.keys() :
         report['Kitchen']['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
     else:
@@ -109,6 +117,8 @@ for t in trans:
     if t['Name'] == 'Cash':
         report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
 
+    tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+    once = True
     #distribute the tips amongst the helpers
     for staff in shared_tips.keys():
         worked = 0
@@ -116,7 +126,6 @@ for t in trans:
             #iterate over the shifts
             for s in val:
                 if s['Staff Type'] != staff: continue
-                tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
                 fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
                 if s['Clock-Out'] == "\"\"":
                     to = datetime.now()
@@ -130,25 +139,31 @@ for t in trans:
                 report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
-            continue
-#            print "No one worked as " + staff + " for bill " + t['Bill Number'] + " at " + t['Bill Date']
+            #continue
         for name, val in shift.iteritems():
             #iterate over the shifts
             for s in val:
-                if s['Staff Type'] != staff: continue
-                tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
                 fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
                 if s['Clock-Out'] == "\"\"":
                     to =  datetime.now()
                 else:
                     to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                # if its his own then need to update shift tips.
+                if s['Name'] == t['Staff']:
+                    if  fr <= tran and tran <= to:
+                        if once:
+                            s['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
+                            once = False
+                        if worked == 0:
+                            s['extra-tips'] +=((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff])
+                if s['Staff Type'] != staff: continue
                 if  fr <= tran and tran <= to:
                     report[name]['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
                 
-emails={}
-for e in result['data']:
-    if e['user']['email'] == '': continue
-    emails[e['user']['firstname'].lower()] = e['user']['email']
+#emails={}
+#for e in result['data']:
+#    if e['user']['email'] == '': continue
+#    emails[e['user']['firstname'].lower()] = e['user']['email']
 
 import smtplib
 from email.MIMEMultipart import MIMEMultipart
@@ -166,21 +181,21 @@ server.login("tycscreports@gmail.com", sys.argv[1])
 
 for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
 
-    if k.lower() not in emails.keys():
-        print "Need email for " + k
-        continue
+#    if k.lower() not in emails.keys():
+#        print "Need email for " + k
+#        continue
     msg = MIMEMultipart()
     msg['From'] = fromaddr
-    if sys.argv[3] == 'no':
-        #toaddr = emails[k.lower()]
-    #else:
+    if need_user is None:
         break
+    if need_user != k:
+        continue
     msg['To'] = toaddr
     msg['Subject'] = "[Yellow Chilli] Earning from %s/%s to %s/%s" % (date[4], date[5], date[7], date[8])
     body = "Shift Details\n\n"
-    body += "{:>30} {:>15} {:>14} {:>15} {:>14}  {:>15}(hours) {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay')
+    body += "{:>30} {:>15} {:>14} {:>15} {:>14}  {:>15}(hours) {:>14} {:>14} {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'Extra-tips')
     for s in v['shifts']:
-        body += "{:>30} {:>15} {:>14} {:>15} {:>14}hours  {:>15} {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'])
+        body += "{:>30} {:>15} {:>14} {:>15} {:>14}hours  {:>15} {:>14} {:>14} {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['extra-tips'])
     body += "\n\nPay Details\n\n"
     body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} {:>15} \n".format('Name','Type', 'Hours', 'OT-Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
     body += "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} \n".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
@@ -189,7 +204,7 @@ for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
     msg.attach(MIMEText(body, 'plain'))
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
-    print "Sending mail to " + k + " at " + emails[k.lower()]
+    print "Sending mail to " + k + " at " + toaddr
 server.quit()
 
 print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format('Name','Type', 'Hours', 'OT-hours', 'Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
