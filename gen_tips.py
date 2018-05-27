@@ -7,6 +7,8 @@ import json
 
 def dollartofloat(s):
     if '$' not in s: return s
+    if s[0] == '"':
+        s = s[1:-1]
     if s[0] == '-':
         return -float(s.split('$')[1])
     return float(s.split('$')[1])
@@ -28,6 +30,7 @@ shift = {'Kitchen' : [
      'Hourly Rate' : 0.0,
      'Pay' : '0.0',
  } ]}
+ignore_list = ["4103"]
 trans = []
 orders = {}
 date = ""
@@ -46,6 +49,19 @@ for row in rows:
     if 'REPORT' in row:
         s = 0
         continue
+    # handle the amount > 1000
+    if '"$' in row:
+        nrow = ""
+        amount = False
+        for c in row:
+            if c == '$' :
+                amount = True
+            if c == '.':
+                amount = False
+            if c == ',' and amount:
+                continue
+            nrow += c
+        row = nrow
     row = row.replace('Admin', 'Kitchen')
     cols = row.split(',')
     cols1 = {}
@@ -60,6 +76,9 @@ for row in rows:
         else:
             shift[cols1['Name']] = [cols1]
     else:
+        if cols1['Order Number'] in ignore_list:
+            print "Ignoring " + cols1['Order Number']
+            continue
         # gratuity is duped in all the partial payments so remove it
         if cols1['Order Number'] in orders.keys() and cols1['Type'] == 'Partial Payment':
             cols1['Gratuity'] = 0.0
