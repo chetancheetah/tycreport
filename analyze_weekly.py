@@ -162,7 +162,7 @@ for h in range(8,24):
         line = "\t,"+("week-%d"%w)+","
         for d in days:
             #stats = 'sales,labor,orders,seats,Staff(S/B/B/H/F),'
-            line += "%d,%d,(%d/%d/%d/%d/%d),"%(
+            line += "$%d,$%d,(%d/%d/%d/%d/%d),"%(
                 report[d][w][h]['sales'],
                 report[d][w][h]['labor'],
 #                report[d][w][h]['orders'],
