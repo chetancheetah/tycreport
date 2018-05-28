@@ -68,7 +68,7 @@ date = date.split('-')
 total=8
 lunch=9
 dinner=10
-days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+days = ['Total', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 report = {}
 dt="%s-%s-%s"%(date[3], date[4], date[5])
 fr = datetime.strptime(dt, '%Y-%m-%d')
@@ -92,7 +92,7 @@ for d in days:
                 'Hostess'    : 0,
                 'Food Runner': 0,
             }
-
+tot = "Total"
 for i in shift:
     for s in shift[i]:
         fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
@@ -105,16 +105,23 @@ for i in shift:
         t = s['Staff Type']
         if t not in report[wd][week][fr.hour].keys(): continue
         report[wd][week][8][t] += 1
+        report[tot][week][8][t] += 1
         pay = s['Pay']
         report[wd][week][8]['labor'] += pay
+        report[tot][week][8]['labor'] += pay
         if to.hour < 18:
             report[wd][week][9][t] += 1
             report[wd][week][9]['labor'] += pay
+            report[tot][week][9][t] += 1
+            report[tot][week][9]['labor'] += pay
         else:
             report[wd][week][10][t] += 1
             report[wd][week][10]['labor'] += pay
+            report[tot][week][10][t] += 1
+            report[tot][week][10]['labor'] += pay
         for i in range(fr.hour, to.hour+1):
             report[wd][week][i][t] += 1
+            report[tot][week][i][t] += 1
 
 for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
@@ -122,11 +129,15 @@ for t in trans:
     week = tran.isocalendar()[1]
     amt = (t['Applied to Bill'] - t['Gratuity'])/1.09
     report[wd][week][8]['sales'] += amt
+    report[tot][week][8]['sales'] += amt
     if tran.hour < 18:
         report[wd][week][9]['sales'] += amt
+        report[tot][week][9]['sales'] += amt
     else:
         report[wd][week][10]['sales'] += amt
+        report[tot][week][10]['sales'] += amt
     report[wd][week][tran.hour]['sales'] += amt
+    report[tot][week][tran.hour]['sales'] += amt
 
 str = ',,'
 hdr = 'Time,,'
