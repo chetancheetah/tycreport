@@ -4,6 +4,8 @@ from datetime import datetime
 
 def dollartofloat(s):
     if '$' not in s: return s
+    if s[0] == '"':
+        s = s[1:-1]
     if s[0] == '-':
         return -float(s.split('$')[1])
     return float(s.split('$')[1])
@@ -29,6 +31,19 @@ for row in rows:
     if 'REPORT' in row:
         s = 0
         continue
+    # handle the amount > 1000
+    if '"$' in row:
+        nrow = ""
+        amount = False
+        for c in row:
+            if c == '$' :
+                amount = True
+            if c == '.':
+                amount = False
+            if c == ',' and amount:
+                continue
+            nrow += c
+        row = nrow
     row = row.replace('Admin', 'Kitchen')
     cols = row.split(',')
     cols1 = {}
