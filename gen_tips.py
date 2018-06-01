@@ -117,6 +117,12 @@ for name, shifts in shift.iteritems():
             dat  = ndate
         hours += float(s['Duration'])
         old = s
+        s['fr'] = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+        if s['Clock-Out'] == "\"\"":
+            to = datetime.now()
+        else:
+            to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+        s['to'] = to
     old['hours'] = hours
     for s in shifts:
         hours = s['hours'] if s['hours'] <= 8.0 else 8.0
@@ -125,6 +131,7 @@ for name, shifts in shift.iteritems():
         report[name]['ot-hours'] += ot_hours
         rate = s['Hourly Rate']
         report[name]['pay'] += hours * rate + ot_hours*1.5*rate
+
 # go over all the shift details
 for t in trans:
     if need_user and need_user != t['Staff']:
@@ -145,11 +152,8 @@ for t in trans:
             #iterate over the shifts
             for s in val:
                 if s['Staff Type'] != staff: continue
-                fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-                if s['Clock-Out'] == "\"\"":
-                    to = datetime.now()
-                else:
-                    to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                fr = s['fr']
+                to = s['to']
                 if  fr <= tran and tran <= to:
                     worked += 1
         if worked == 0:
@@ -162,11 +166,8 @@ for t in trans:
         for name, val in shift.iteritems():
             #iterate over the shifts
             for s in val:
-                fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-                if s['Clock-Out'] == "\"\"":
-                    to =  datetime.now()
-                else:
-                    to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                fr = s['fr']
+                to = s['to']
                 # if its his own then need to update shift tips.
                 if s['Name'] == t['Staff']:
                     if  fr <= tran and tran <= to:
