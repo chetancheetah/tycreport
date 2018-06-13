@@ -122,6 +122,8 @@ for i in shift:
         for i in range(fr.hour, to.hour+1):
             report[wd][week][i][t] += 1
             report[tot][week][i][t] += 1
+        report[wd][week][to.hour]['labor'] += pay
+        report[tot][week][to.hour]['labor'] += pay
 
 for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
