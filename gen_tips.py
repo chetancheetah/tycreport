@@ -18,8 +18,8 @@ need_user = None
 if len(sys.argv) == 4:
     need_user = sys.argv[3]
 
-#result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
-#result = json.loads(result)
+result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
+result = json.loads(result)
 
 shift = {'Kitchen' : [
     {'Name' : 'Kitchen',
@@ -90,7 +90,7 @@ date = date.split('-')
 #how to share
 shared_tips= {
     'Kitchen'  : 0.08,   #  8%
-    'Busser' : 0.10,     # 10%
+    'Busser' : 0.15,     # 15%
     'Food Runner' : 0.05,#  5%
     'Hostess' : 0.02,    #  2%
     'Bartender': 0.05,   #  5%
@@ -136,12 +136,10 @@ for name, shifts in shift.iteritems():
 
 # go over all the shift details
 for t in trans:
-#    if need_user and need_user != t['Staff']:
-#        continue
     if t['Staff'] not in report.keys() :
-        report['Kitchen']['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
+        report['Kitchen']['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
     else:
-        report[t['Staff']]['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
+        report[t['Staff']]['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
     if t['Name'] == 'Cash':
         report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
 
@@ -174,7 +172,7 @@ for t in trans:
                 if s['Name'] == t['Staff']:
                     if  fr <= tran and tran <= to:
                         if once:
-                            s['tips'] += t['Tip']*0.7 + t['Gratuity']*0.7
+                            s['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
                             once = False
                         if worked == 0:
                             s['extra-tips'] +=((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff])
@@ -186,10 +184,13 @@ for t in trans:
                         s['worked'] = worked
                     s['total'] += t['Tip'] + t['Gratuity']
                 
-#emails={}
-#for e in result['data']:
-#    if e['user']['email'] == '': continue
-#    emails[e['user']['firstname'].lower()] = e['user']['email']
+emails={}
+for e in result['data']:
+    if e['user']['email'] == '':
+        print "Need email for " + e['user']['firstname']
+        continue
+    print "Email for " + e['user']['firstname'] + " is " +  e['user']['email']
+    emails[e['user']['firstname'].lower()] = e['user']['email']
 
 import smtplib
 from email.MIMEMultipart import MIMEMultipart
@@ -206,27 +207,27 @@ server.starttls()
 server.login("tycscreports@gmail.com", sys.argv[1])
 
 for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
-
 #    if k.lower() not in emails.keys():
 #        print "Need email for " + k
 #        continue
+#   toaddr = emails[k.lower()]
     msg = MIMEMultipart()
     msg['From'] = fromaddr
-    if need_user is None:
-        break
-    if need_user != k:
+#    if need_user is None:
+#        break
+    if need_user and need_user != k:
         continue
     msg['To'] = toaddr
     msg['Subject'] = "[Yellow Chilli] Earning from %s/%s to %s/%s" % (date[4], date[5], date[7], date[8])
     body = "Shift Details\n\n"
-    body += "{:>30} {:>15} {:>14} {:>15} {:>14}  {:>15}(hours) {:>14} {:>14} {:>14} {:>14} {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'Extra-tips', 'Total-tips', 'Worked')
+    body += "{:>30} {:>15} {:>14} {:>15} {:>14}  {:>15}(hours) {:>14} {:>14} {:>14} {:>14} {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'Extra-tips', 'Collected Tips', v['type']+"\'s")
     for s in v['shifts']:
-        body += "{:>30} {:>15} {:>14} {:>15} {:>14}hours  {:>15} {:>14} {:>14} {:>14} {:>14} {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['extra-tips'], s['total'], s['worked'])
+        body += "{:>30} {:>15} {:>14} {:>15} {:>14}hours  ${:>15} ${:>14} ${:>14} ${:>14} ${:>14} {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['extra-tips'], s['total'], s['worked'])
     body += "\n\nPay Details\n\n"
     body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} {:>15} \n".format('Name','Type', 'Hours', 'OT-Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
     body += "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} \n".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
     body += "\n\nPaycheck will be run every two weeks and checks will be given on Tuesday \n Regards TYC"
-    body += "\n\nEvery server keeps his tips and gives\n (10% - busser, 5% food runner, 8% kitchen, 5% bartender, 2% host),\n If there is no busser or food runner and server has to bus and run the food and he will keep that share with himself (shown in extra-tips)\n\n\n Please contact the Manager if there is any issue with the calculation\n"
+    body += "\n\nEvery server keeps his tips and gives\n (15% - busser, 5% food runner, 8% Expeditor, 5% bartender, 2% host),\n If there is no busser or food runner on shift then the server has to bus and run the food and he will keep that share with himself (shown in extra-tips)\n\n\n Please contact the Manager if there is any issue with the calculation\n"
     msg.attach(MIMEText(body, 'plain'))
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
