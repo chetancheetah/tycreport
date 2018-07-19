@@ -30,7 +30,7 @@ shift = {'Kitchen' : [
      'Hourly Rate' : 0.0,
      'Pay' : '0.0',
  } ]}
-ignore_list = ["4103"]
+ignore_list = ["4103", "6850"]
 trans = []
 orders = {}
 date = ""
