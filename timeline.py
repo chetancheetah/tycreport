@@ -71,11 +71,11 @@ dinner=10
 days = ['Total', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 report = {}
 dt="%s-%s-%s"%(date[3], date[4], date[5])
-fr = datetime.strptime(dt, '%Y-%m-%d')
+from_rep = datetime.strptime(dt, '%Y-%m-%d')
 dt="%s-%s-%s"%(date[6], date[7], date[8])
-to = datetime.strptime(dt, '%Y-%m-%d')
-fw = fr.isocalendar()[1]
-tw = to.isocalendar()[1]
+to_rep = datetime.strptime(dt, '%Y-%m-%d')
+fw = from_rep.isocalendar()[1]
+tw = to_rep.isocalendar()[1]
 for d in days:
     report[d] = {}
     for w in range(fw,tw+1):
@@ -141,24 +141,6 @@ for t in trans:
     report[wd][week][tran.hour]['sales'] += amt
     report[tot][week][tran.hour]['sales'] += amt
 
-header="""
-<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-<script type="text/javascript">
-  google.charts.load('current', {'packages':['timeline']});
-  google.charts.setOnLoadCallback(drawChart);
-  function drawChart() {
-      var container = document.getElementById('timeline');
-      var chart = new google.visualization.Timeline(container);
-      var dataTable = new google.visualization.DataTable();
-      dataTable.addColumn({ type: 'string', id: 'Name' });
-      dataTable.addColumn({ type: 'string', id: 'Pay' });
-      dataTable.addColumn({ type: 'date', id: 'Start' });
-      dataTable.addColumn({ type: 'date', id: 'End' });
-      dataTable.addRows([
-"""
-
-print header
-
 
 #shift time
 st = {
@@ -171,52 +153,103 @@ st = {
     'Sunday'   : [12, 00, 15, 00, 17, 30, 22, 00],
     }
 
-total = 0.0
-morn = 0.0
-even = 0.0
 
 types = {}
 for i in shift:
     for s in shift[i]:
         types[s['Staff Type']] = 1
         break
-for t in types.keys():
-    for i in shift:
-        for s in shift[i]:
-            if t != s['Staff Type']: continue
-            total += s['Pay']
-            fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-            to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
-            wd = fr.strftime("%A")
-            if fr.hour < st[wd][2]:
-                morn += s['Pay']
-            else:
-                even += s['Pay']
-            print "          [ '%s-%s', '$%.2f@$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],"%(
-                s['Staff Type'],s['Name'], s['Pay'], s['Hourly Rate'],
-                fr.year, fr.month, fr.day, fr.hour, fr.minute, fr.second,
-                to.year, to.month, to.day, to.hour, to.minute, to.second)
 
-print "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],"%(
-    report[wd][week][9]['sales'], morn, morn/report[wd][week][9]['sales']*100.0,
-    fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
-    to.year, to.month, to.day, st[wd][2], st[wd][3], 0)
-print "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],"%(
-    report[wd][week][10]['sales'], even, even/report[wd][week][10]['sales']*100.0,
-    fr.year, fr.month, fr.day, st[wd][4], st[wd][5], 0,
-    to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
-print "          [ 'Total', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],"%(
-    report[wd][week][8]['sales'], total, total/report[wd][week][8]['sales']*100.0,
-    fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
-    to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+start_day = from_rep.timetuple().tm_yday
+end_day = to_rep.timetuple().tm_yday
+rows = ""
+compare = ""
+for d in range(start_day, end_day+1):
+    total = 0.0
+    morn = 0.0
+    even = 0.0
+    once = ""
+    for t in types.keys():
+        for i in shift:
+            for s in shift[i]:
+                if t != s['Staff Type']: continue
+                fr1 = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+                if fr1.timetuple().tm_yday != d: continue
+                fr = fr1
+                if once == "":
+                    once = "done"
+                    rows+="var rows_%d_%d_%d = [\n"%(fr.year, fr.month, fr.day)
+                    compare += "if (date_selected == \"%d-%02d-%02d\") dataTable.addRows(rows_%d_%d_%d);\n"%(fr.year, fr.month, fr.day, fr.year, fr.month, fr.day)
+                total += s['Pay']
+                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                wd = fr.strftime("%A")
+                if fr.hour < st[wd][2]:
+                    morn += s['Pay']
+                else:
+                    even += s['Pay']
+                rows += "          [ '%s-%s', '$%.2f@$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+                    s['Staff Type'],s['Name'], s['Pay'], s['Hourly Rate'],
+                    fr.year, fr.month, fr.day, fr.hour, fr.minute, fr.second,
+                    to.year, to.month, to.day, to.hour, to.minute, to.second)
+    morn_sales = report[wd][week][9]['sales'] if report[wd][week][9]['sales'] else 1.0
+    even_sales = report[wd][week][10]['sales'] if report[wd][week][10]['sales'] else 1.0
+    day_sales = report[wd][week][8]['sales'] if report[wd][week][8]['sales'] else 1.0
+    rows += "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+        morn_sales, morn, morn/morn_sales*100.0,
+        fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
+        to.year, to.month, to.day, st[wd][2], st[wd][3], 0)
+    rows += "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+        even_sales, even, even/even_sales*100.0,
+        fr.year, fr.month, fr.day, st[wd][4], st[wd][5], 0,
+        to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+    rows += "          [ '%s', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+        wd,
+        day_sales, total, total/day_sales*100.0,
+        fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
+        to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+    rows += "];\n"
 
-trailer="""
-]);
+header="""
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+  google.charts.load('current', {'packages':['timeline']});
+  google.charts.setOnLoadCallback(drawChart);
+  %s
+  function drawChart() {
+      var container = document.getElementById('timeline');
+      var chart = new google.visualization.Timeline(container);
+      var dataTable = new google.visualization.DataTable();
+      var date_selected = document.getElementById("sel_date").value;
+      dataTable.addColumn({ type: 'string', id: 'Name' });
+      dataTable.addColumn({ type: 'string', id: 'Pay' });
+      dataTable.addColumn({ type: 'date', id: 'Start' });
+      dataTable.addColumn({ type: 'date', id: 'End' });
+      %s
      chart.draw(dataTable);
+  }
+  function date_left() {
+     document.getElementById("sel_date").stepDown(1);
+     date_changed();
+  }
+  function date_right() {
+     document.getElementById("sel_date").stepUp(1);
+     date_changed();
+  }
+  function date_changed() {
+     drawChart()
   }
 </script>
 
-<div id="timeline" style="height: 1800px;"></div>
-
-"""
-print trailer
+<div id="timeline" style="height: 1000px;"></div>
+<center><button type="button" onclick="date_left()" > < </button>
+<input type="date" id="sel_date" name="trip"
+               value="%d-%02d-%02d"
+               min="%d-%02d-%02d" max="%d-%02d-%02d" 
+               onchange="date_changed(event);" / >
+<button type="button" onclick="date_right()" > > </button>
+</center>
+""" % (rows, compare,
+       to_rep.year, to_rep.month, to_rep.day,
+       from_rep.year, from_rep.month, from_rep.day,
+       to_rep.year, to_rep.month, to_rep.day)
+print header
