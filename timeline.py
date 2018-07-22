@@ -84,7 +84,7 @@ for d in days:
             report[d][w][h] = {
                 'sales'      : 0.0,
                 'labor'      : 0.0,
-#                'orders'     : 0,
+                'orders'     : 0,
 #                'seats'      : 0,
                 'Server'     : 0,
                 'Bartender'  : 0,
@@ -122,8 +122,8 @@ for i in shift:
         for i in range(fr.hour, to.hour+1):
             report[wd][week][i][t] += 1
             report[tot][week][i][t] += 1
-        report[wd][week][to.hour]['labor'] += pay
-        report[tot][week][to.hour]['labor'] += pay
+            report[wd][week][i]['labor'] += s['Hourly Rate']
+            report[tot][week][i]['labor'] += s['Hourly Rate']
 
 for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
@@ -140,6 +140,8 @@ for t in trans:
         report[tot][week][10]['sales'] += amt
     report[wd][week][tran.hour]['sales'] += amt
     report[tot][week][tran.hour]['sales'] += amt
+    report[tot][week][tran.hour]['orders'] += 1
+    report[wd][week][tran.hour]['orders'] += 1
 
 
 #shift time
@@ -169,6 +171,7 @@ for d in range(start_day, end_day+1):
     morn = 0.0
     even = 0.0
     once = ""
+    staff_row = ""
     for t in types.keys():
         for i in shift:
             for s in shift[i]:
@@ -176,9 +179,10 @@ for d in range(start_day, end_day+1):
                 fr1 = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
                 if fr1.timetuple().tm_yday != d: continue
                 fr = fr1
+                week = fr.isocalendar()[1]
                 if once == "":
                     once = "done"
-                    rows+="var rows_%d_%d_%d = [\n"%(fr.year, fr.month, fr.day)
+                    decl_row ="var rows_%d_%d_%d = [\n"%(fr.year, fr.month, fr.day)
                     compare += "if (date_selected == \"%d-%02d-%02d\") dataTable.addRows(rows_%d_%d_%d);\n"%(fr.year, fr.month, fr.day, fr.year, fr.month, fr.day)
                 total += s['Pay']
                 to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
@@ -187,28 +191,39 @@ for d in range(start_day, end_day+1):
                     morn += s['Pay']
                 else:
                     even += s['Pay']
-                rows += "          [ '%s-%s', '$%.2f@$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+                staff_row += "          [ '%s-%s', '$%.2f@$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
                     s['Staff Type'],s['Name'], s['Pay'], s['Hourly Rate'],
                     fr.year, fr.month, fr.day, fr.hour, fr.minute, fr.second,
                     to.year, to.month, to.day, to.hour, to.minute, to.second)
+    hour_row = ""
+    for h in range(11,24):
+        orders = report[wd][week][h]['orders'] if report[wd][week][h]['orders'] else 1
+        sales = report[wd][week][h]['sales'] if report[wd][week][h]['sales'] else 1.0
+        if sales == 1.0: continue
+        hour_row += "          [ 'Hourly', '$%.2f/%d Tables/%d covers', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+            sales, orders, (sales/28),
+            fr.year, fr.month, fr.day, h, 0, 0,
+            to.year, to.month, to.day, h+1, 0, 0)
+
     morn_sales = report[wd][week][9]['sales'] if report[wd][week][9]['sales'] else 1.0
     even_sales = report[wd][week][10]['sales'] if report[wd][week][10]['sales'] else 1.0
     day_sales = report[wd][week][8]['sales'] if report[wd][week][8]['sales'] else 1.0
-    rows += "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+    shift_row = "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
         morn_sales, morn, morn/morn_sales*100.0,
         fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
         to.year, to.month, to.day, st[wd][2], st[wd][3], 0)
-    rows += "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+    shift_row += "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
         even_sales, even, even/even_sales*100.0,
         fr.year, fr.month, fr.day, st[wd][4], st[wd][5], 0,
         to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
-    rows += "          [ '%s', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+    day_row = "          [ '%s', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
         wd,
         day_sales, total, total/day_sales*100.0,
         fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
         to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
-    rows += "];\n"
+    end_row = "];\n"
 
+    rows += "%s%s%s%s%s%s"%(decl_row, day_row, shift_row, hour_row, staff_row, end_row)
 header="""
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
@@ -225,6 +240,9 @@ header="""
       dataTable.addColumn({ type: 'date', id: 'Start' });
       dataTable.addColumn({ type: 'date', id: 'End' });
       %s
+      var options = {'title':'FOH Labor graph',
+                     'width':1400,
+                     'height':700};
      chart.draw(dataTable);
   }
   function date_left() {
@@ -240,7 +258,7 @@ header="""
   }
 </script>
 
-<div id="timeline" style="height: 1000px;"></div>
+<div id="timeline" style="height:700;width:1400"></div>
 <center><button type="button" onclick="date_left()" > < </button>
 <input type="date" id="sel_date" name="trip"
                value="%d-%02d-%02d"

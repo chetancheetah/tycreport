@@ -1,0 +1,85 @@
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+  google.charts.load('current', {'packages':['timeline']});
+  google.charts.setOnLoadCallback(drawChart);
+  var rows_2018_7_21 = [
+          [ 'Saturday', 'Sales $9614.82 Labor $1255.98 = 13.06%', new Date(2018,7,21,12,0,0), new Date(2018,7,21,22,30,0) ],
+          [ 'Shift', 'Sales $2638.81 Labor $366.59 = 13.89%', new Date(2018,7,21,12,0,0), new Date(2018,7,21,15,0,0) ],
+          [ 'Shift', 'Sales $6976.01 Labor $889.39 = 12.75%', new Date(2018,7,21,17,30,0), new Date(2018,7,21,22,30,0) ],
+          [ 'Hourly', '$567.47/7 Tables/20 covers', new Date(2018,7,21,13,0,0), new Date(2018,7,21,14,0,0) ],
+          [ 'Hourly', '$1419.90/15 Tables/50 covers', new Date(2018,7,21,14,0,0), new Date(2018,7,21,15,0,0) ],
+          [ 'Hourly', '$612.47/7 Tables/21 covers', new Date(2018,7,21,15,0,0), new Date(2018,7,21,16,0,0) ],
+          [ 'Hourly', '$38.97/1 Tables/1 covers', new Date(2018,7,21,17,0,0), new Date(2018,7,21,18,0,0) ],
+          [ 'Hourly', '$133.90/3 Tables/4 covers', new Date(2018,7,21,18,0,0), new Date(2018,7,21,19,0,0) ],
+          [ 'Hourly', '$537.52/8 Tables/19 covers', new Date(2018,7,21,19,0,0), new Date(2018,7,21,20,0,0) ],
+          [ 'Hourly', '$2249.72/21 Tables/80 covers', new Date(2018,7,21,20,0,0), new Date(2018,7,21,21,0,0) ],
+          [ 'Hourly', '$1475.99/18 Tables/52 covers', new Date(2018,7,21,21,0,0), new Date(2018,7,21,22,0,0) ],
+          [ 'Hourly', '$2554.90/30 Tables/91 covers', new Date(2018,7,21,22,0,0), new Date(2018,7,21,23,0,0) ],
+          [ 'Hourly', '$23.98/1 Tables/0 covers', new Date(2018,7,21,23,0,0), new Date(2018,7,21,24,0,0) ],
+          [ 'Bartender-Surendra', '$72.23@$13.50', new Date(2018,7,21,17,22,0), new Date(2018,7,21,22,43,0) ],
+          [ 'Hostess-Kyle', '$40.91@$13.50', new Date(2018,7,21,12,2,0), new Date(2018,7,21,15,4,0) ],
+          [ 'Hostess-Kyle', '$0.00@$13.50', new Date(2018,7,21,18,48,0), new Date(2018,7,21,18,48,0) ],
+          [ 'Hostess-Kyle', '$51.17@$13.50', new Date(2018,7,21,19,0,0), new Date(2018,7,21,22,47,0) ],
+          [ 'Hostess-Jeslyn', '$38.07@$13.50', new Date(2018,7,21,17,31,0), new Date(2018,7,21,20,20,0) ],
+          [ 'Food Runner-Vinay', '$25.80@$10.00', new Date(2018,7,21,12,25,0), new Date(2018,7,21,15,0,0) ],
+          [ 'Food Runner-Vinay', '$52.40@$10.00', new Date(2018,7,21,17,49,0), new Date(2018,7,21,23,3,0) ],
+          [ 'Food Runner-Udit', '$35.10@$13.50', new Date(2018,7,21,12,34,0), new Date(2018,7,21,15,10,0) ],
+          [ 'Food Runner-Udit', '$68.85@$13.50', new Date(2018,7,21,17,29,0), new Date(2018,7,21,22,35,0) ],
+          [ 'Busser-Lucas', '$63.75@$15.00', new Date(2018,7,21,11,30,0), new Date(2018,7,21,15,45,0) ],
+          [ 'Busser-Rowan', '$76.01@$13.50', new Date(2018,7,21,17,26,0), new Date(2018,7,21,23,4,0) ],
+          [ 'Busser-Luis', '$72.90@$13.50', new Date(2018,7,21,17,29,0), new Date(2018,7,21,22,53,0) ],
+          [ 'Busser-Prajwal', '$24.57@$9.00', new Date(2018,7,21,12,34,0), new Date(2018,7,21,15,18,0) ],
+          [ 'Busser-Prajwal', '$44.91@$9.00', new Date(2018,7,21,17,53,0), new Date(2018,7,21,22,52,0) ],
+          [ 'Busser-Yuji', '$48.20@$13.50', new Date(2018,7,21,12,3,0), new Date(2018,7,21,15,37,0) ],
+          [ 'Busser-Yuji', '$67.37@$13.50', new Date(2018,7,21,18,1,0), new Date(2018,7,21,23,0,0) ],
+          [ 'Server-Leo', '$55.76@$13.50', new Date(2018,7,21,18,31,0), new Date(2018,7,21,22,38,0) ],
+          [ 'Server-Bunny', '$40.90@$10.00', new Date(2018,7,21,18,52,0), new Date(2018,7,21,22,58,0) ],
+          [ 'Server-Deepak', '$51.17@$13.50', new Date(2018,7,21,18,47,0), new Date(2018,7,21,22,35,0) ],
+          [ 'Server-Joseph G', '$46.85@$13.50', new Date(2018,7,21,11,43,0), new Date(2018,7,21,15,11,0) ],
+          [ 'Server-Joseph G', '$62.24@$13.50', new Date(2018,7,21,17,55,0), new Date(2018,7,21,22,32,0) ],
+          [ 'Server-Prabesh', '$43.88@$13.50', new Date(2018,7,21,12,1,0), new Date(2018,7,21,15,16,0) ],
+          [ 'Server-James d', '$71.96@$13.50', new Date(2018,7,21,17,16,0), new Date(2018,7,21,22,36,0) ],
+          [ 'Server-Sanchi', '$37.53@$13.50', new Date(2018,7,21,12,33,0), new Date(2018,7,21,15,20,0) ],
+          [ 'Server-Sanchi', '$63.45@$13.50', new Date(2018,7,21,18,1,0), new Date(2018,7,21,22,43,0) ],
+          [ 'Manager-Shivraj', '$0.00@$0.00', new Date(2018,7,21,11,20,0), new Date(2018,7,21,23,4,0) ],
+];
+
+  function drawChart() {
+      var container = document.getElementById('timeline');
+      var chart = new google.visualization.Timeline(container);
+      var dataTable = new google.visualization.DataTable();
+      var date_selected = document.getElementById("sel_date").value;
+      dataTable.addColumn({ type: 'string', id: 'Name' });
+      dataTable.addColumn({ type: 'string', id: 'Pay' });
+      dataTable.addColumn({ type: 'date', id: 'Start' });
+      dataTable.addColumn({ type: 'date', id: 'End' });
+      if (date_selected == "2018-07-21") dataTable.addRows(rows_2018_7_21);
+
+      var options = {'title':'FOH Labor graph',
+                     'width':1400,
+                     'height':700};
+     chart.draw(dataTable);
+  }
+  function date_left() {
+     document.getElementById("sel_date").stepDown(1);
+     date_changed();
+  }
+  function date_right() {
+     document.getElementById("sel_date").stepUp(1);
+     date_changed();
+  }
+  function date_changed() {
+     drawChart()
+  }
+</script>
+
+<div id="timeline" style="height:700;width:1400"></div>
+<center><button type="button" onclick="date_left()" > < </button>
+<input type="date" id="sel_date" name="trip"
+               value="2018-07-21"
+               min="2018-07-21" max="2018-07-21" 
+               onchange="date_changed(event);" / >
+<button type="button" onclick="date_right()" > > </button>
+</center>
+
