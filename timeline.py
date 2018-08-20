@@ -98,6 +98,7 @@ for i in shift:
         fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
         if s['Clock-Out'] == "\"\"":
             to = datetime.now()
+            s['Clock-Out'] = '%d-%d-%d %d:%d'%(to.year, to.month, to.day, to.hour, to.minute)
         else:
             to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
         wd = fr.strftime("%A")
@@ -172,6 +173,7 @@ for d in range(start_day, end_day+1):
     even = 0.0
     once = ""
     staff_row = ""
+    #decl_row =""
     for t in types.keys():
         for i in shift:
             for s in shift[i]:
