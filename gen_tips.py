@@ -136,14 +136,19 @@ for name, shifts in shift.iteritems():
 
 # go over all the shift details
 for t in trans:
+    tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+    buffet = False
+#    if (tran.day == 10 or tran.day == 11) and tran.hour < 16:
+#        buffet = True
     if t['Staff'] not in report.keys() :
         report['Kitchen']['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
     else:
         report[t['Staff']]['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
+        if buffet:
+            report[t['Staff']]['tips'] -= t['Tip']*0.65/2 + t['Gratuity']*0.65/2
     if t['Name'] == 'Cash':
         report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
 
-    tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
     once = True
     #distribute the tips amongst the helpers
     for staff in shared_tips.keys():
@@ -162,6 +167,8 @@ for t in trans:
                 report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
+                if buffet:
+                    report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             #continue
         for name, val in shift.iteritems():
             #iterate over the shifts
@@ -173,13 +180,19 @@ for t in trans:
                     if  fr <= tran and tran <= to:
                         if once:
                             s['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
+                            if buffet:
+                                s['tips'] -= t['Tip']*0.65/2 + t['Gratuity']*0.65/2
                             once = False
                         if worked == 0:
                             s['extra-tips'] +=((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff])
                 if s['Staff Type'] != staff: continue
                 if  fr <= tran and tran <= to:
                     report[name]['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
+                    if buffet:
+                        report[name]['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
                     s['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
+                    if buffet:
+                        s['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
                     if s['worked'] == 0:
                         s['worked'] = worked
                     s['total'] += t['Tip'] + t['Gratuity']
