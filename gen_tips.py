@@ -71,6 +71,8 @@ for row in rows:
         i += 1
     if s:
         if cols1['Staff Type'] == 'Owner': continue
+        if cols1['Staff Type'] == 'Bar back':
+            cols1['Staff Type'] = 'Bartender'
         if shift.has_key(cols1['Name']):
             shift[cols1['Name']].append(cols1)
         else:
