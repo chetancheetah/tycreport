@@ -1,5 +1,6 @@
 import sys
 import csv
+import copy
 from datetime import datetime
 
 def dollartofloat(s):
@@ -65,36 +66,59 @@ for row in rows:
         trans.append(cols1)
 
 date = date.split('-')
-total=8
-lunch=9
-dinner=10
-days = ['Total', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-        'Avg-Total', 'Avg-Monday', 'Avg-Tuesday', 'Avg-Wednesday', 'Avg-Thursday', 'Avg-Friday', 'Avg-Saturday', 'Avg-Sunday',]
-report = {}
 dt="%s-%s-%s"%(date[3], date[4], date[5])
 from_rep = datetime.strptime(dt, '%Y-%m-%d')
 dt="%s-%s-%s"%(date[6], date[7], date[8])
 to_rep = datetime.strptime(dt, '%Y-%m-%d')
-fw = from_rep.isocalendar()[1]
-tw = to_rep.isocalendar()[1]
-nw = tw-fw
-for d in days:
-    report[d] = {}
-    for w in range(fw,tw+1):
-        report[d][w] = {}
-        for h in range(8,24):
-            report[d][w][h] = {
-                'sales'      : 0.0,
-                'labor'      : 0.0,
-                'orders'     : 0,
-#                'seats'      : 0,
-                'Server'     : 0,
-                'Bartender'  : 0,
-                'Busser'     : 0,
-                'Hostess'    : 0,
-                'Food Runner': 0,
+fy = from_rep.year
+ty = to_rep.year
+
+day='day'
+week='week'
+month='month'
+report='report'
+sales='sales'
+labor='labor'
+tips='tips'
+orders='orders'
+rep= {
+    sales      : 1.0,
+    labor      : 0.0,
+    tips       : 0.0,
+    orders     : 0,
+    }
+records = {}
+for y in range(fy, ty+1):
+    records[y] = {
+        report : copy.deepcopy(rep),
+        month  : {},
+        week   : {},
+        day    : {},
+        }
+    #init months
+    sm = 1 if y != fy else from_rep.timetuple().tm_mon
+    em = (12 if y != ty else to_rep.timetuple().tm_mon)+ 1
+    for m in range(sm, em) :
+        records[y][month][m] = { report: copy.deepcopy(rep) }
+
+    #init weeks
+    sw = 1 if y != fy else from_rep.isocalendar()[1]
+    ew = (52 if y != ty else to_rep.isocalendar()[1]) + 1
+    for w in range(sw, ew):
+        records[y][week][w] = { report: copy.deepcopy(rep) }
+
+    #init days
+    sd = 1 if y != fy else from_rep.timetuple().tm_yday
+    ed = (365 if y != ty else to_rep.timetuple().tm_yday) + 1
+    for d in range(sd, ed):
+        records[y][day][d] = {
+            'shifts' : {},
+            'trans' : [],
+            report:{},
             }
-tot = "Total"
+        for h in range(7,24):
+            records[y][day][d][report][h] = copy.deepcopy(rep)
+
 for i in shift:
     for s in shift[i]:
         fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
@@ -103,64 +127,78 @@ for i in shift:
             s['Clock-Out'] = '%d-%d-%d %d:%d'%(to.year, to.month, to.day, to.hour, to.minute)
         else:
             to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
-        wd = fr.strftime("%A")
-        avg_wd = 'Avg-'+wd
-        week = fr.isocalendar()[1]
-        t = s['Staff Type']
-        if t not in report[wd][week][fr.hour].keys(): continue
-        report[wd][week][8][t] += 1
-        report[avg_wd][tw][8][t] += 1
-        report[tot][week][8][t] += 1
-        pay = s['Pay']
-        report[wd][week][8]['labor'] += pay
-        report[avg_wd][tw][8]['labor'] += pay
-        report[tot][week][8]['labor'] += pay
-        if to.hour < 18:
-            report[wd][week][9][t] += 1
-            report[wd][week][9]['labor'] += pay
-            report[avg_wd][tw][9][t] += 1
-            report[avg_wd][tw][9]['labor'] += pay
-            report[tot][week][9][t] += 1
-            report[tot][week][9]['labor'] += pay
-        else:
-            report[wd][week][10][t] += 1
-            report[wd][week][10]['labor'] += pay
-            report[avg_wd][tw][10][t] += 1
-            report[avg_wd][tw][10]['labor'] += pay
-            report[tot][week][10][t] += 1
-            report[tot][week][10]['labor'] += pay
-        for i in range(fr.hour, to.hour+1):
-            report[wd][week][i][t] += 1
-            report[avg_wd][tw][i][t] += 1
-            report[tot][week][i][t] += 1
-            report[wd][week][i]['labor'] += s['Hourly Rate']
-            report[avg_wd][tw][i]['labor'] += s['Hourly Rate']
-            report[tot][week][i]['labor'] += s['Hourly Rate']
-
+        yr = fr.year
+        yd = fr.timetuple().tm_yday
+        t = s['Staff Type'] + '-'
+        ti = t+i
+        if yd not in records[yr][day]:
+            continue
+        if ti not in records[yr][day][yd]['shifts'].keys():
+            records[yr][day][yd]['shifts'][ti] = []
+        records[yr][day][yd]['shifts'][ti].append(s)
 for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
-    wd = tran.strftime("%A")
-    avg_wd = "Avg-"+wd
-    week = tran.isocalendar()[1]
-    amt = (t['Applied to Bill'] - t['Gratuity'])/1.09
-    report[wd][week][8]['sales'] += amt
-    report[avg_wd][tw][8]['sales'] += amt
-    report[tot][week][8]['sales'] += amt
-    if tran.hour < 18:
-        report[wd][week][9]['sales'] += amt
-        report[avg_wd][tw][9]['sales'] += amt
-        report[tot][week][9]['sales'] += amt
-    else:
-        report[wd][week][10]['sales'] += amt
-        report[avg_wd][tw][10]['sales'] += amt
-        report[tot][week][10]['sales'] += amt
-    report[wd][week][tran.hour]['sales'] += amt
-    report[avg_wd][tw][tran.hour]['sales'] += amt
-    report[tot][week][tran.hour]['sales'] += amt
-    report[tot][week][tran.hour]['orders'] += 1
-    report[wd][week][tran.hour]['orders'] += 1
-    report[avg_wd][tw][tran.hour]['orders'] += 1
+    yr = tran.year
+    yd = tran.timetuple().tm_yday
+    records[yr][day][yd]['trans'].append(t)
 
+avg = {
+    'Monday'   : copy.deepcopy(rep),
+    'Tuesday'  : copy.deepcopy(rep),
+    'Wednesday': copy.deepcopy(rep),
+    'Thursday' : copy.deepcopy(rep),
+    'Friday'   : copy.deepcopy(rep),
+    'Saturday' : copy.deepcopy(rep),
+    'Sunday'   : copy.deepcopy(rep),
+    }
+
+total=7
+lunch=8
+dinner=9
+# go thru all the shifts and calculate total, per session, per hour labor costs and averages too.
+for y in sorted(records.keys()):
+    for d in sorted(records[y][day].keys()):
+        for e in records[y][day][d]['shifts'].keys():
+            for s in records[y][day][d]['shifts'][e]:
+                fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
+                for h in range(fr.hour, to.hour+1):
+                    if h not in records[y][day][d][report].keys():
+                        continue
+                    records[y][day][d][report][h][labor] += s['Hourly Rate']
+                records[y][day][d][report][total][labor] += s['Pay']
+                if to.hour < 18:
+                    records[y][day][d][report][lunch][labor] += s['Pay']
+                else:
+                    records[y][day][d][report][dinner][labor] += s['Pay']
+                records[y][month][fr.month][report][labor] += s['Pay']
+                records[fr.isocalendar()[0]][week][fr.isocalendar()[1]][report][labor] += s['Pay']
+                records[y][report][labor] += s['Pay']
+                avg[fr.strftime("%A")][labor] += s['Pay']
+        for t in records[y][day][d]['trans']:
+            tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+            amt = (t['Applied to Bill'] - t['Gratuity'])/1.09
+            tip = t['Tip'] + t['Gratuity']
+            records[y][day][d][report][tran.hour][sales] += amt
+            records[y][day][d][report][tran.hour][tips] += tip
+            records[y][day][d][report][tran.hour][orders] += 1
+            if tran.hour < 18:
+                records[y][day][d][report][lunch][sales] += amt
+                records[y][day][d][report][lunch][tips] += tip
+                records[y][day][d][report][lunch][orders] += 1
+            else:
+                records[y][day][d][report][dinner][sales] += amt
+                records[y][day][d][report][dinner][tips] += tip
+                records[y][day][d][report][dinner][orders] += 1
+            records[y][day][d][report][total][sales] += amt
+            records[y][day][d][report][total][tips] += tip
+            records[y][day][d][report][total][orders] += 1
+            records[y][report][sales] += amt
+            records[fr.isocalendar()[0]][week][fr.isocalendar()[1]][report][sales] += amt
+            records[y][month][fr.month][report][sales] += amt
+            avg[fr.strftime("%A")][sales]  += amt
+            avg[fr.strftime("%A")][tips]   += tip
+        avg[fr.strftime("%A")][orders] += 1
 
 #shift time
 st = {
@@ -173,103 +211,91 @@ st = {
     'Sunday'   : [12, 00, 15, 00, 17, 30, 22, 00],
     }
 
+def _d(d):
+    return '${:,.2f}'.format(d)
 
-types = {}
-for i in shift:
-    for s in shift[i]:
-        types[s['Staff Type']] = 1
-        break
-
-start_day = from_rep.timetuple().tm_yday
-end_day = to_rep.timetuple().tm_yday
 rows = ""
 compare = ""
-for d in range(start_day, end_day+1):
-    total = 0.0
-    morn = 0.0
-    even = 0.0
-    once = ""
-    staff_row = ""
-    #decl_row =""
-    for t in types.keys():
-        for i in shift:
-            for s in shift[i]:
-                if t != s['Staff Type']: continue
-                fr1 = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
-                if fr1.timetuple().tm_yday != d: continue
-                fr = fr1
-                week = fr.isocalendar()[1]
+#now generate the script
+for y in sorted(records.keys()):
+    for d in sorted(records[y][day].keys()):
+        wd = ""
+        once = ""
+        staff_row = ""
+        for e in sorted(records[y][day][d]['shifts'].keys()):
+            for s in records[y][day][d]['shifts'][e]:
+                fr = datetime.strptime(s['Clock-In'], '%Y-%m-%d %H:%M')
+                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
                 if once == "":
                     once = "done"
+                    wd = fr.strftime("%A")
                     decl_row ="var rows_%d_%d_%d = [\n"%(fr.year, fr.month, fr.day)
                     compare += "if (date_selected == \"%d-%02d-%02d\") dataTable.addRows(rows_%d_%d_%d);\n"%(fr.year, fr.month, fr.day, fr.year, fr.month, fr.day)
-                total += s['Pay']
-                to = datetime.strptime(s['Clock-Out'], '%Y-%m-%d %H:%M')
-                wd = fr.strftime("%A")
-                avg_wd = "Avg-" + fr.strftime("%A")
-                if fr.hour < st[wd][2]:
-                    morn += s['Pay']
-                else:
-                    even += s['Pay']
-                staff_row += "          [ '%s-%s', '$%.2f@$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-                    s['Staff Type'],s['Name'], s['Pay'], s['Hourly Rate'],
+                staff_row += "          [ '%s-%s', '$%s@$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+                    s['Staff Type'],s['Name'], '{:,}'.format(s['Pay']), s['Hourly Rate'],
                     fr.year, fr.month, fr.day, fr.hour, fr.minute, fr.second,
                     to.year, to.month, to.day, to.hour, to.minute, to.second)
-    hour_row = ""
-    avg_hour_row = ""
-    for h in range(11,24):
-        orders = report[wd][week][h]['orders'] if report[wd][week][h]['orders'] else 1
-        sales = report[wd][week][h]['sales'] if report[wd][week][h]['sales'] else 1.0
-        if sales == 1.0: continue
-        hour_row += "          [ 'Hourly', '$%.2f/%d Tables/%d covers', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-            sales, orders, (sales/28),
-            fr.year, fr.month, fr.day, h, 0, 0,
-            to.year, to.month, to.day, h+1, 0, 0)
-        avg_orders = report[avg_wd][tw][h]['orders']/nw if report[avg_wd][tw][h]['orders'] else 1
-        avg_sales = report[avg_wd][tw][h]['sales']/nw if report[avg_wd][tw][h]['sales'] else 1.0
-        if sales == 1.0: continue
-        avg_hour_row += "          [ 'Avg-Hourly', '$%.2f/%d Tables/%d covers', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-            avg_sales, avg_orders, (avg_sales/28),
-            fr.year, fr.month, fr.day, h, 0, 0,
-            to.year, to.month, to.day, h+1, 0, 0)
+        hour_row = ""
+        for h in range(11,24):
+            order = records[y][day][d][report][h][orders]
+            sale = records[y][day][d][report][h][sales]
+            tip = records[y][day][d][report][h][tips]
+            if sale == 1.0:
+                hour_row += "          [ 'Hourly', '$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+                    0.0,
+                    fr.year, fr.month, fr.day, h, 0, 0,
+                    to.year, to.month, to.day, h+1, 0, 0)
+                continue
+            hour_row += "          [ 'Hourly', '$%.2f/%d Tables/%d covers Tips$%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+                sale, order, (sale/28), tip,
+                fr.year, fr.month, fr.day, h, 0, 0,
+                to.year, to.month, to.day, h+1, 0, 0)
 
-    morn_sales = report[wd][week][9]['sales'] if report[wd][week][9]['sales'] else 1.0
-    even_sales = report[wd][week][10]['sales'] if report[wd][week][10]['sales'] else 1.0
-    day_sales = report[wd][week][8]['sales'] if report[wd][week][8]['sales'] else 1.0
-    shift_row = "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-        morn_sales, morn, morn/morn_sales*100.0,
-        fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
-        to.year, to.month, to.day, st[wd][2], st[wd][3], 0)
-    shift_row += "          [ 'Shift', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-        even_sales, even, even/even_sales*100.0,
-        fr.year, fr.month, fr.day, st[wd][4], st[wd][5], 0,
-        to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
-    day_row = "          [ '%s', 'Sales $%.2f Labor $%.2f = %0.2f%%', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-        wd,
-        day_sales, total, total/day_sales*100.0,
-        fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
-        to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+        morn_sales = records[y][day][d][report][lunch][sales] 
+        even_sales = records[y][day][d][report][dinner][sales] 
+        day_sales  = records[y][day][d][report][total][sales] 
+        day_avg_sales = avg[wd][sales]/avg[wd][orders]
+        morn_tips  = records[y][day][d][report][lunch][tips] 
+        even_tips  = records[y][day][d][report][dinner][tips] 
+        day_tips   = records[y][day][d][report][total][tips] 
+        day_avg_tips = avg[wd][tips]/avg[wd][orders]
+        morn_labor = records[y][day][d][report][lunch][labor] 
+        even_labor = records[y][day][d][report][dinner][labor] 
+        day_labor  = records[y][day][d][report][total][labor] 
+        day_avg_labor = avg[wd][labor]/avg[wd][orders]
+        shift_row  = "          [ 'Shift', 'Sle %s Lbr %s(%0.2f%%) Tip $%.2f(%0.2f%%)', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+            _d(morn_sales), _d(morn_labor), morn_labor/morn_sales*100.0,
+            morn_tips, morn_tips/morn_sales*100.00,
+            fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
+            to.year, to.month, to.day, st[wd][2], st[wd][3], 0)
+        shift_row += "          [ 'Shift', 'Sle %s Lbr %s(%0.2f%%) Tip $%.2f(%0.2f%%)', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+            _d(even_sales), _d(even_labor), even_labor/even_sales*100.0,
+            even_tips, even_tips/even_sales*100.00,
+            fr.year, fr.month, fr.day, st[wd][4], st[wd][5], 0,
+            to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+        day_row = "          [ '%s', 'Sle %s Lbr %s(%0.2f%%) Tip $%.2f(%0.2f%%)', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+            wd,
+            _d(day_sales), _d(day_labor), day_labor/day_sales*100.0,
+            day_tips, day_tips/day_sales*100.00,
+            fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
+            to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+        day_avg_row = "          [ '%s-AVG', 'Sle %s Lbr %s(%0.2f%%) Tip $%.2f(%0.2f%%)', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+            wd,
+            _d(day_avg_sales), _d(day_avg_labor), day_avg_labor/day_avg_sales*100.0,
+            day_avg_tips, day_avg_tips/day_avg_sales*100.00,
+            fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
+            to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+        stat_row = "          [ 'Total', '%d=Sale %s/ lbr %s %s=Sale %s/ lbr %s Week-%d=Sale %s/ lbr %s', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
+            y, _d(records[y][report][sales]), _d(records[y][report][labor]),
+            fr.strftime("%b"),_d(records[y][month][fr.month][report][sales]),_d(records[y][month][fr.month][report][labor]),
+            fr.isocalendar()[1],
+            _d(records[fr.isocalendar()[0]][week][fr.isocalendar()[1]][report][sales]),
+            _d(records[fr.isocalendar()[0]][week][fr.isocalendar()[1]][report][labor]),
+            fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
+            to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
+        end_row = "];\n"
+        rows += "%s%s%s%s%s%s%s%s"%(decl_row, stat_row, day_row, day_avg_row, shift_row, hour_row,  staff_row, end_row)
 
-    avg_morn_sales = report[avg_wd][tw][9]['sales']/nw if report[avg_wd][tw][9]['sales'] else 1.0
-    avg_even_sales = report[avg_wd][tw][10]['sales']/nw if report[avg_wd][tw][10]['sales'] else 1.0
-    avg_day_sales = report[avg_wd][tw][8]['sales']/nw if report[avg_wd][tw][8]['sales'] else 1.0
-    avg_shift_row = "          [ 'Avg-Shift', 'Sales $%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-        avg_morn_sales,
-        fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
-        to.year, to.month, to.day, st[wd][2], st[wd][3], 0)
-    avg_shift_row += "          [ 'Avg-Shift', 'Sales $%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-        avg_even_sales,
-        fr.year, fr.month, fr.day, st[wd][4], st[wd][5], 0,
-        to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
-    avg_day_row = "          [ '%s', 'Sales $%.2f', new Date(%d,%d,%d,%d,%d,%d), new Date(%d,%d,%d,%d,%d,%d) ],\n"%(
-        avg_wd,
-        avg_day_sales,
-        fr.year, fr.month, fr.day, st[wd][0], st[wd][1], 0,
-        to.year, to.month, to.day, st[wd][6], st[wd][7], 0)
-
-    end_row = "];\n"
-
-    rows += "%s%s%s%s%s%s%s%s%s"%(decl_row, day_row, avg_day_row, shift_row, avg_shift_row, hour_row, avg_hour_row, staff_row, end_row)
 header="""
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
