@@ -158,13 +158,24 @@ for t in trans:
                 to = s['to']
                 if  fr <= tran and tran <= to:
                     worked += 1
+        # relax the check a little
+        if worked == 0:
+            for name, val in shift.iteritems():
+                #iterate over the shifts
+                for s in val:
+                    if s['Staff Type'] != staff: continue
+                    fr = s['fr']
+                    to = s['to']
+                    if  fr.year == tran.year and fr.month == tran.month and fr.day == tran.day:
+                        if (fr.hour < 16 and to.hour < 16) or (fr.hour > 16 and to.hour > 16):
+                            worked += 1
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
             if staff == 'Busser' or staff == 'Food Runner':
                 report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
-            continue
+#            continue
         for name, val in shift.iteritems():
             #iterate over the shifts
             for s in val:
@@ -176,6 +187,8 @@ for t in trans:
                         if once:
                             s['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
                             once = False
+                        if worked == 0 and (staff == 'Busser' or staff == 'Food Runner'):
+                            s['extra-tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff])
                 if s['Staff Type'] != staff: continue
                 if  fr <= tran and tran <= to:
                     report[name]['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
