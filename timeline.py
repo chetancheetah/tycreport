@@ -78,6 +78,7 @@ to_rep = datetime.strptime(dt, '%Y-%m-%d')
 fw = from_rep.isocalendar()[1]
 tw = to_rep.isocalendar()[1]
 nw = tw-fw
+nw = 1 if not nw else nw
 for d in days:
     report[d] = {}
     for w in range(fw,tw+1):
