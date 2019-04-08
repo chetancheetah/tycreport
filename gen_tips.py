@@ -141,6 +141,29 @@ for name, shifts in shift.iteritems():
 # go over all the shift details
 for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+
+    #figure out if its buffet
+    if tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday':
+        worked = 0
+        for  name, val in shift.iteritems():
+            #iterate over the shifts
+            for s in val:
+                if s['Staff Type'] not in  shared_tips.keys() and s['Staff Type'] != 'Server': continue
+                fr = s['fr']
+                to = s['to']
+                if  fr <= tran and tran <= to:
+                    worked += 1
+        for name, val in shift.iteritems():
+            #iterate over the shifts
+            for s in val:
+                if s['Staff Type'] not in  shared_tips.keys() and s['Staff Type'] != 'Server': continue
+                fr = s['fr']
+                to = s['to']
+                if  fr <= tran and tran <= to:
+                    s['buffet-tips'] += (t['Tip']*0.92 + t['Gratuity']*0.92)/worked
+                    s['worked'] = worked
+                    report[name]['buffet-tips'] +=  (t['Tip']*0.92 + t['Gratuity']*0.92)/worked
+        continue
     if t['Staff'] not in report.keys() :
         report['Kitchen']['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
     else:
