@@ -40,6 +40,7 @@ with open(sys.argv[2]) as f:
 s = 0
 for row in rows:
     row = row.replace('\n','')
+    row = row.replace('\r','')
     if 'theyellow' in row:
         if s: date = row
         continue
@@ -99,9 +100,9 @@ shared_tips= {
 }
 
 
-report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'extra-tips':0.0, 'cash':0.0}}
+report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0,'extra-tips':0.0, 'cash':0.0}}
 
-for u in shift.keys(): report[u] = {'type':shift[u][0]['Staff Type'],'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'total':0.0, 'worked' : 0 }
+for u in shift.keys(): report[u] = {'type':shift[u][0]['Staff Type'],'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'total':0.0, 'worked' : 0 }
 
 for name, shifts in shift.iteritems():
     report[name]['shifts'] = shifts
@@ -110,6 +111,7 @@ for name, shifts in shift.iteritems():
     hours = 0.0
     for s in shifts:
         s['tips'] = 0.0
+        s['buffet-tips'] = 0.0
         s['extra-tips'] = 0.0
         s['hours'] = 0.0
         s['total'] = 0.0
@@ -137,14 +139,42 @@ for name, shifts in shift.iteritems():
         report[name]['pay'] += hours * rate + ot_hours*1.5*rate
 
 # go over all the shift details
+total_tips = 0.0
 for t in trans:
     tran = datetime.strptime(t['Bill Date'], '%Y-%m-%d %H:%M')
+
+    total_tips += t['Tip'] + t['Gratuity']
+
+    #figure out if its buffet
+    if t['Name'] == 'Cash':
+        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
+
+    if tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday':
+        report['Kitchen']['buffet-tips'] += (t['Tip'])*shared_tips['Kitchen'] + (t['Gratuity'])*shared_tips['Kitchen']
+        worked = 0
+        for  name, val in shift.iteritems():
+            #iterate over the shifts
+            for s in val:
+                if s['Staff Type'] == 'Manager' or s['Staff Type'] == 'Kitchen' : continue
+                fr = s['fr']
+                to = s['to']
+                if  fr <= tran and tran <= to:
+                    worked += 1
+        for name, val in shift.iteritems():
+            #iterate over the shifts
+            for s in val:
+                if s['Staff Type'] == 'Manager' or s['Staff Type'] == 'Kitchen' : continue
+                fr = s['fr']
+                to = s['to']
+                if  fr <= tran and tran <= to:
+                    s['buffet-tips'] += (t['Tip']*0.92 + t['Gratuity']*0.92)/worked
+                    s['worked'] = worked
+                    report[name]['buffet-tips'] +=  (t['Tip']*0.92 + t['Gratuity']*0.92)/worked
+        continue
     if t['Staff'] not in report.keys() :
         report['Kitchen']['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
     else:
         report[t['Staff']]['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
-    if t['Name'] == 'Cash':
-        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
 
     once = True
     #distribute the tips amongst the helpers
@@ -197,6 +227,8 @@ for t in trans:
                     if s['worked'] == 0:
                         s['worked'] = worked
                     s['total'] += t['Tip'] + t['Gratuity']
+
+print "Total tips %f"%total_tips
                 
 emails={}
 for e in result['data']:
@@ -235,16 +267,16 @@ for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
     msg['Subject'] = "[Yellow Chilli] %s  Earning from %s/%s to %s/%s" % (k, date[4], date[5], date[7], date[8])
     body = "Shift Details\n\n"
     if v['shifts'][0]['Staff Type'] == 'Server':
-        body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14}  {:>14}  {:>14} {:>14} {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'extra-tips', 'Busser', 'Food Runner')
+        body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14}  {:>14}  {:>14} {:>14} {:>14} {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'buffet-tips', 'extra-tips', 'Busser', 'Food Runner')
         for s in v['shifts']:
-            body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14.2f}$ {:>14.2f}$ {:>14.2f}$ {:>14} {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['extra-tips'], s['Busser'], s['Food Runner'])
+            body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14.2f}$ {:>14.2f}$ {:>14.2f}$ {:>14.2f}$ {:>14} {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['buffet-tips'], s['extra-tips'], s['Busser'], s['Food Runner'])
     else:
-        body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14}  {:>14}  {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', v['type']+"\'s")
+        body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14} {:>14} {:>14}  {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'buffet-tips', v['type']+"\'s")
         for s in v['shifts']:
-            body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14.2f}$ {:>14.2f}$ {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['worked'])
+            body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14.2f}$ {:>14.2f}$ {:>14}\n".format(k, s['Staff Type'], s['Clock-In'], s['Clock-Out'], s['Duration'], s['Hourly Rate'], s['Pay'], s['tips'], s['buffet-tips'], s['worked'])
     body += "\n\nPay Details\n\n"
-    body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} {:>15} \n".format('Name','Type', 'Hours', 'OT-Hours','Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
-    body += "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} \n".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    body += "{:>30} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} {:>15} \n".format('Name','Type', 'Hours', 'OT-Hours','Pay', 'tips', 'buffet-tips', 'extra-tips', 'cash-advance', 'Total')
+    body += "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} \n".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['buffet-tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['buffet-tips'] + v['extra-tips'] - v['cash'])
     body += "\n\nPaycheck will be run every two weeks and checks will be given on Tuesday \n Regards TYC"
     body += "\n\nEvery server keeps his tips and gives\n (15% - busser, 5% food runner, 8% Expeditor, 5% bartender, 2% host),\n Extra tips when there is no busser or food runner during that shift\n\n\n Please contact the Manager if there is any issue with the calculation\n"
     msg.attach(MIMEText(body, 'plain'))
@@ -253,16 +285,17 @@ for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
     print "Sending mail to " + k + " at " + toaddr
 server.quit()
 
-print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format('Name','Type', 'Hours', 'OT-hours', 'Pay', 'tips', 'extra-tips', 'cash-advance', 'Total')
-hours, ot_hours, pay, tips, extra_tips, cash = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format('Name','Type', 'Hours', 'OT-hours', 'Pay', 'tips', 'buffet-tips', 'extra-tips', 'cash-advance', 'Total')
+hours, ot_hours, pay, tips, buffet_tips, extra_tips, cash = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 #for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
 for k, v in sorted(report.items()):
-    print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['extra-tips'] - v['cash'])
+    print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15} {:>15}  {:>15} ".format(k, v['type'], v['hours'], v['ot-hours'], v['pay'], v['tips'], v['buffet-tips'], v['extra-tips'], v['cash'], v['pay'] + v['tips'] + v['buffet-tips'] + v['extra-tips'] - v['cash'])
     hours += v['hours']
     ot_hours += v['ot-hours']
     pay += v['pay']
     tips += v['tips']
+    buffet_tips += v['buffet-tips']
     extra_tips += v['extra-tips']
     cash += v['cash']
     
-print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15}  {:>15} ".format("Total", "", hours, ot_hours, pay, tips, extra_tips, cash, pay+tips+extra_tips-cash)
+print "{:>30} {:>15} {:>15} {:>15} {:>15} {:>15}  {:>15} {:>15} {:>15} {:>15} ".format("Total", "", hours, ot_hours, pay, tips, buffet_tips, extra_tips, cash, pay+tips+buffet_tips+extra_tips-cash)
