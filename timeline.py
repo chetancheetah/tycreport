@@ -23,6 +23,7 @@ with open(sys.argv[1]) as f:
 s = 0
 for row in rows:
     row = row.replace('\n','')
+    row = row.replace('\r','')
     if 'theyellow' in row:
         if s: date = row
         continue
@@ -64,7 +65,6 @@ for row in rows:
             cols1['Gratuity'] = 0.0
         orders[cols1['Order Number']] = True
         trans.append(cols1)
-
 date = date.split('-')
 dt="%s-%s-%s"%(date[3], date[4], date[5])
 from_rep = datetime.strptime(dt, '%Y-%m-%d')
