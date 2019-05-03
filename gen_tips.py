@@ -116,6 +116,8 @@ for name, shifts in shift.iteritems():
         s['hours'] = 0.0
         s['total'] = 0.0
         s['worked'] = 0
+        for t in shared_tips.keys():
+            s[t] =0
         ndate = s['Clock-In'].split(' ')[0].split('-')[2]
         if dat != ndate:
             old['hours'] = hours
@@ -147,7 +149,7 @@ for t in trans:
 
     #figure out if its buffet
     if t['Name'] == 'Cash':
-        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
+        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount'] - t['Change']
 
     if tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday':
         report['Kitchen']['buffet-tips'] += (t['Tip'])*shared_tips['Kitchen'] + (t['Gratuity'])*shared_tips['Kitchen']
@@ -197,7 +199,7 @@ for t in trans:
                     fr = s['fr']
                     to = s['to']
                     if  fr.year == tran.year and fr.month == tran.month and fr.day == tran.day:
-                        if (fr.hour < 16 and to.hour < 16) or (fr.hour > 16 and to.hour > 16):
+                        if (fr.hour < 16 and to.hour < 16 and tran.hour < 16) or (fr.hour >= 16 and to.hour >= 16 and tran.hour >= 16):
                             worked += 1
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
@@ -219,7 +221,8 @@ for t in trans:
                             once = False
                         if worked == 0 and (staff == 'Busser' or staff == 'Food Runner'):
                             s['extra-tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff])
-                        s[staff] = worked
+                        if s[staff] == 0:
+                            s[staff] = worked
                 if s['Staff Type'] != staff: continue
                 if  fr <= tran and tran <= to:
                     report[name]['tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]) / worked
