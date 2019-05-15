@@ -15,8 +15,12 @@ def dollartofloat(s):
 
 need_user = None
 
-if len(sys.argv) == 4:
+if len(sys.argv) >= 4:
     need_user = sys.argv[3]
+
+location = 'SC'
+if len(sys.argv) >= 5:
+    location = sys.argv[4].upper()
 
 result = subprocess.check_output(['curl', 'https://api.7shifts.com/v1/users',  '-u', 'VS5RDPW86QD5X2A6D2YZT56VM9CLE3D8:'])
 result = json.loads(result)
@@ -91,13 +95,26 @@ for row in rows:
 date = date.split('-')
 
 #how to share
-shared_tips= {
+sc_shared_tips= {
     'Kitchen'  : 0.08,   #  8%
     'Busser' : 0.15,     # 15%
     'Food Runner' : 0.05,#  5%
     'Hostess' : 0.02,    #  2%
     'Bartender': 0.05,   #  5%
 }
+
+la_shared_tips= {
+    'Kitchen'  : 0.08,   #  8%
+    'Busser' : 0.10,     # 10%
+    'Food Runner' : 0.05,#  5%
+    'Hostess' : 0.02,    #  2%
+    'Bartender': 0.05,   #  5%
+}
+
+if location == 'LA':
+    shared_tips = la_shared_tips
+else:
+    shared_tips = sc_shared_tips
 
 
 report = {'Kitchen':{'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0,'extra-tips':0.0, 'cash':0.0}}
@@ -151,8 +168,14 @@ for t in trans:
     if t['Name'] == 'Cash':
         report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount'] - t['Change']
 
-    if (tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday' and
-        (tran.year == 2019 and tran.month != 5 and tran.day != 12)):
+    is_buffet = False
+    # do this only for SC
+    if location == 'SC' and tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday':
+        if tran.year == 2019 and tran.month == 5 and tran.hour <= 16:
+            pass
+        else:
+            is_buffet = True
+    if is_buffet:
         report['Kitchen']['buffet-tips'] += (t['Tip'])*shared_tips['Kitchen'] + (t['Gratuity'])*shared_tips['Kitchen']
         worked = 0
         for  name, val in shift.iteritems():
