@@ -166,7 +166,7 @@ for t in trans:
 
     #figure out if its buffet
     if t['Name'] == 'Cash':
-        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount'] - t['Change']
+        report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['cash'] += t['Payment Amount']
 
     is_buffet = False
     # do this only for SC
@@ -174,7 +174,7 @@ for t in trans:
         if tran.year == 2019 and tran.month == 5 and tran.hour <= 16:
             pass
         else:
-            is_buffet = True
+            is_buffet = False
     if is_buffet:
         report['Kitchen']['buffet-tips'] += (t['Tip'])*shared_tips['Kitchen'] + (t['Gratuity'])*shared_tips['Kitchen']
         worked = 0
@@ -227,7 +227,7 @@ for t in trans:
                             worked += 1
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
-            if staff == 'Busser' or staff == 'Food Runner':
+            if False and staff == 'Busser' or staff == 'Food Runner':
                 report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
@@ -243,7 +243,7 @@ for t in trans:
                         if once:
                             s['tips'] += t['Tip']*0.65 + t['Gratuity']*0.65
                             once = False
-                        if worked == 0 and (staff == 'Busser' or staff == 'Food Runner'):
+                        if False and worked == 0 and (staff == 'Busser' or staff == 'Food Runner'):
                             s['extra-tips'] += ((t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff])
                         if s[staff] == 0:
                             s[staff] = worked
