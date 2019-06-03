@@ -171,10 +171,10 @@ for t in trans:
     is_buffet = False
     # do this only for SC
     if location == 'SC' and tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday':
-        if tran.year == 2019 and tran.month == 5 and tran.hour <= 16:
+        if tran.year == 2019 and tran.month >= 5 and tran.day >= 12 and tran.hour <= 16:
             pass
         else:
-            is_buffet = False
+            is_buffet = True
     if is_buffet:
         report['Kitchen']['buffet-tips'] += (t['Tip'])*shared_tips['Kitchen'] + (t['Gratuity'])*shared_tips['Kitchen']
         worked = 0
@@ -227,7 +227,7 @@ for t in trans:
                             worked += 1
         if worked == 0:
             # if there was no busser  or food runner then assumption the server would have bussed
-            if False and staff == 'Busser' or staff == 'Food Runner':
+            if False and (staff == 'Busser' or staff == 'Food Runner'):
                 report[t['Staff'] if t['Staff'] in report.keys() else 'Kitchen']['extra-tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
             else:
                 report['Kitchen']['tips'] += (t['Tip'])*shared_tips[staff] + (t['Gratuity'])*shared_tips[staff]
