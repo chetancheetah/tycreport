@@ -171,10 +171,12 @@ for t in trans:
     is_buffet = False
     # do this only for SC
     if location == 'SC' and tran.year >= 2019 and tran.month >= 4 and tran.hour <= 16 and tran.strftime("%A") == 'Sunday':
-        if tran.year == 2019 and tran.month >= 5 and tran.day >= 12 and tran.hour <= 16:
-            pass
-        else:
-            is_buffet = True
+        pass
+    # ignore this tips.
+    if location == 'SC' and tran.year == 2019 and tran.month == 5 and tran.day == 29 and tran.hour >= 16:
+        continue
+        #is_buffet = True
+
     if is_buffet:
         report['Kitchen']['buffet-tips'] += (t['Tip'])*shared_tips['Kitchen'] + (t['Gratuity'])*shared_tips['Kitchen']
         worked = 0
