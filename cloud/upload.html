@@ -1,0 +1,313 @@
+<html>
+<head>
+<script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
+
+<script type="text/javascript">
+AWS.config.update({
+  region: "us-east-1",
+  // The endpoint should point to the local or remote computer where DynamoDB (downloadable) is running.
+  endpoint: 'http://localhost:8000',
+//  endpoint: 'https://464429638625.signin.aws.amazon.com/console',
+  /*
+    accessKeyId and secretAccessKey defaults can be used while using the downloadable version of DynamoDB.
+    For security reasons, do not store AWS Credentials in your files. Use Amazon Cognito instead.
+  */
+  accessKeyId: "AKIAWYIRJ4PQYN3OS2OI",
+  secretAccessKey: "F1UYVIjDNRWqqO7kq+2OgItbFyEvOm5zNqxVzcmy"
+});
+
+  /*
+     Uncomment the following code to configure Amazon Cognito and make sure to
+     remove the endpoint, accessKeyId and secretAccessKey specified in the code above.
+     Make sure Cognito is available in the DynamoDB web service region (specified above).
+     Finally, modify the IdentityPoolId and the RoleArn with your own.
+  */
+/*
+AWS.config.region = 'us-east-1'; // Region
+AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: "us-east-1:4f0994f9-700c-4c38-a93e-0c634934d483",
+    RoleArn: "arn:aws:iam::464429638625:role/Cognito_tycscUnauth_Role"
+});
+*/
+
+var dynamodb = new AWS.DynamoDB();
+var docClient = new AWS.DynamoDB.DocumentClient();
+function createTransactions() {
+    var params = {
+        TableName : "Transactions",
+        KeySchema: [
+            { AttributeName: "year", KeyType: "HASH"},
+            { AttributeName: "Bill Date", KeyType: "RANGE"},
+        ],
+        AttributeDefinitions: [
+            { AttributeName: "year", AttributeType: "N" },
+            { AttributeName: "Bill Date", AttributeType: "S" },
+        ],
+        ProvisionedThroughput: {
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5
+        }
+    };
+
+    dynamodb.createTable(params, function(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML = "Unable to create table: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            document.getElementById('textarea').innerHTML = "Created table: " + "\n" + JSON.stringify(data, undefined, 2);
+        }
+    });
+}
+
+function deleteTransactions() {
+    var params = {
+        TableName : "Transactions"
+    };
+
+    dynamodb.deleteTable(params, function(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML = "Unable to delete table: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            document.getElementById('textarea').innerHTML = "Table deleted.";
+        }
+    });
+}
+
+function listTransactions() {
+    var params = {};
+    dynamodb.listTables(params, function(err, data) {
+    if (err){
+        document.getElementById('textarea').innerHTML = "Unable to list tables: " + "\n" + JSON.stringify(err, undefined, 2);
+    }
+    else{
+     document.getElementById('textarea').innerHTML = "List of tables: " + "\n" + JSON.stringify(data, undefined, 2);
+    }
+});
+}
+
+function createItem() {
+    var params = {
+        TableName :"Transactions",
+        Item:{
+            "year": 2019,
+            "Bill Date": "2019-06-10 13:03",
+            "Name": "VISA",
+            "Applied to Bill": 183.09,
+            "Tip": 0.0,
+            "Payment Amount": 183.09,
+            "CC Tip Out to House": 0.0,
+            "Change": 0.0,
+            "Type": "Full Payment",
+            "Subtotal with Tax": 154.70,
+            "Gratuity": 28.39,
+            "Bill Number": 27740,
+            "Order Number": 23908,
+            "Staff": "James d",
+        }
+    };
+    docClient.put(params, function(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML = "Unable to add item: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            document.getElementById('textarea').innerHTML = "PutItem succeeded: " + "\n" + JSON.stringify(data, undefined, 2);
+        }
+    });
+}
+
+function readItem() {
+    var table = "Transactions";
+    var year = 2019;
+    var bill_date = "2019-06-10 13:03";
+
+    var params = {
+        TableName: table,
+        Key:{
+            "year": year,
+            "Bill Date": bill_date
+        }
+    };
+    docClient.get(params, function(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML = "Unable to read item: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            document.getElementById('textarea').innerHTML = "GetItem succeeded: " + "\n" + JSON.stringify(data, undefined, 2);
+        }
+    });
+}
+
+function deleteItem() {
+    var table = "Transactions";
+    var year = 2019;
+    var bill_date = "2019-06-10 13:03";
+
+    var params = {
+        TableName:table,
+        Key:{
+            "year":year,
+            "Bill Date":bill_date
+        }
+    };
+    docClient.delete(params, function(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML = "Unable to delete item: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            document.getElementById('textarea').innerHTML = "DeleteItem succeeded: " + "\n" + JSON.stringify(data, undefined, 2);
+        }
+    });
+}
+
+function queryData() {
+    document.getElementById('textarea').innerHTML = "";
+    document.getElementById('textarea').innerHTML += "Querying for transactions from 1985.";
+
+    var params = {
+        TableName : "Transactions",
+        KeyConditionExpression: "#yr = :yyyy",
+        ExpressionAttributeNames:{
+            "#yr": "year"
+        },
+        ExpressionAttributeValues: {
+            ":yyyy":2019
+        }
+    };
+
+    docClient.query(params, function(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML += "Unable to query. Error: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            document.getElementById('textarea').innerHTML += "Query succeeded: count = "+ data.Items.length + "\n";
+            data.Items.forEach(function(transaction) {
+                document.getElementById('textarea').innerHTML += "\n" + JSON.stringify(transaction, undefined, 2);
+            });
+
+        }
+    });
+}
+
+function scanData() {
+    document.getElementById('textarea').innerHTML = "";
+    document.getElementById('textarea').innerHTML += "Scanning for transactions between 1950 and 1975." + "\n";
+
+    var params = {
+        TableName: "Transactions",
+//        ProjectionExpression: "#yr, Name",
+        FilterExpression: "#yr between :start_yr and :end_yr",
+        ExpressionAttributeNames: {
+            "#yr": "year"
+        },
+        ExpressionAttributeValues: {
+            ":start_yr": 1950,
+            ":end_yr": 2019
+        }
+    };
+
+    docClient.scan(params, onScan);
+
+    function onScan(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            // Print all the transactions
+            document.getElementById('textarea').innerHTML += "Scan succeeded: count = "+ data.Items.length + "\n";
+            data.Items.forEach(function(transaction) {
+                document.getElementById('textarea').innerHTML += "\n" + JSON.stringify(transaction, undefined, 2);
+            });
+
+            // Continue scanning if we have more transactions (per scan 1MB limitation)
+            document.getElementById('textarea').innerHTML += "Scanning for more..." + "\n";
+            params.ExclusiveStartKey = data.LastEvaluatedKey;
+            //docClient.scan(params, onScan);
+        }
+    }
+}
+
+function processFile(evt) {
+    document.getElementById('textarea').innerHTML = "";
+    document.getElementById('textarea').innerHTML += "Importing transactions into DynamoDB. Please wait..." + "\n";
+    var file = evt.target.files[0];
+    if (file) {
+        var r = new FileReader();
+
+        r.onload = function(e) {
+            var contents = e.target.result;
+            var allTransactions = contents.split('\n');
+            allTransactions.forEach(function (transaction) {
+                
+                var txn = transaction.split(',');
+                if (txn.length == 13 && txn[0] != "Name") {
+                    var params = {
+                        TableName: "Transactions",
+                        Item: {
+                            "year": parseInt(txn[9].split('-')[0]),
+                            "Name": txn[0],
+                            "Applied to Bill": txn[1],
+                            "Tip": txn[2],
+                            "Payment Amount": txn[3],
+                            "CC Tip Out to House": txn[4],
+                            "Change": txn[5],
+                            "Type": txn[6],
+                            "Subtotal with Tax": txn[7],
+                            "Gratuity": txn[8],
+                            "Bill Date": txn[9],
+                            "Bill Number": txn[10],
+                            "Order Number": txn[11],
+                            "Staff": txn[12],
+                        }
+                    };
+                    docClient.put(params, function (err, data) {
+                        if (err) {
+                            console.log("Unable to add transaction: " + transaction["Bill Date"] + "\n");
+                        } else {
+                            document.getElementById('textarea').innerHTML += "Added: Order Number" + txn[11] + "\n";
+                            textarea.scrollTop = textarea.scrollHeight;
+                        } 
+                   });
+            }
+            });
+    };
+        r.readAsText(file);
+    } else {
+        alert("Could not read transaction data file");
+    }
+}
+
+</script>
+</head>
+
+<body>
+<table border = 1>
+    <td>
+        <table border = 1>
+        <caption>Table Operations</caption>
+        <td><input id="createTableButton" type="button" value="Create Table" onclick="createTransactions();" /></td><td><input id="deleteTableButton" type="button" value="Delete Table" onclick="deleteTransactions();" /></td><td><input id="listTablebutton" type="button" value="List Tables" onclick="listTransactions();" /></td>
+        </table>
+    </td>
+    <td>
+        <table border = 1>
+            <caption>CRUD Operations</caption>
+            <td><input id="createItem" type="button" value="Create Item" onclick="createItem();" /></td>
+            <td><input id="readItem" type="button" value="Read Item" onclick="readItem();" /></td>
+            <td><input id="deleteItem" type="button" value="Delete Item" onclick="deleteItem();" /></td>
+        </table>
+    </td>
+    <td>
+        <table border = 1>
+            <caption>Query and Scan</caption>
+            <td><input id="queryData" type="button" value="Query" onclick="queryData();" /></td><td><input id="scanData" type="button" value="Scan" onclick="scanData();" /></td>
+        </table>
+    </td>
+    <td>
+        <table border = 1>
+            <caption>Import Data</caption>
+            <td><input type="file" id="fileinput" accept='.csv'/></td>
+        </table>
+    </td>
+</table>
+
+<br>
+<textarea readonly id= "textarea" style="width:400px; height:800px"></textarea>
+
+<script>
+    document.getElementById('fileinput').addEventListener('change', processFile, false);
+</script>
+</body>
+</html>

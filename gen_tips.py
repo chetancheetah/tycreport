@@ -45,7 +45,7 @@ s = 0
 for row in rows:
     row = row.replace('\n','')
     row = row.replace('\r','')
-    if 'theyellow' in row:
+    if 'Template' in row:
         if s: date = row
         continue
     if 'Name' in row:
