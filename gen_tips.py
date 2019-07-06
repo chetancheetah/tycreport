@@ -293,7 +293,7 @@ for k, v in sorted(report.items(), key=lambda x:x[1]['type']):
     if need_user and (need_user != k and need_user != 'yes'):
         continue
     msg['To'] = toaddr
-    msg['Subject'] = "[Yellow Chilli] %s  Earning from %s/%s to %s/%s" % (k, date[4], date[5], date[7], date[8])
+    msg['Subject'] = "[Yellow Chilli] %s  Earning from %s/%s to %s/%s" % (k, date[3], date[4], date[6], date[7])
     body = "Shift Details\n\n"
     if v['shifts'][0]['Staff Type'] == 'Server':
         body += "{:>20} {:>10} {:>18} {:>18} {:>14} {:>15} {:>14}  {:>14}  {:>14} {:>14} {:>14} {:>14}\n".format('Name','Staff Type', 'Clock-In', 'Clock-Out', 'hours', 'Hourly Rate', 'Pay', 'Tips', 'buffet-tips', 'extra-tips', 'Busser', 'Food Runner')
