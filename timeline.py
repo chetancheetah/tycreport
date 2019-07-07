@@ -24,7 +24,7 @@ s = 0
 for row in rows:
     row = row.replace('\n','')
     row = row.replace('\r','')
-    if 'theyellow' in row:
+    if 'Template' in row:
         if s: date = row
         continue
     if 'Name' in row:
@@ -66,9 +66,9 @@ for row in rows:
         orders[cols1['Order Number']] = True
         trans.append(cols1)
 date = date.split('-')
-dt="%s-%s-%s"%(date[3], date[4], date[5])
+dt="%s-%s-%s"%(date[2], date[3], date[4])
 from_rep = datetime.strptime(dt, '%Y-%m-%d')
-dt="%s-%s-%s"%(date[6], date[7], date[8])
+dt="%s-%s-%s"%(date[5], date[6], date[7])
 to_rep = datetime.strptime(dt, '%Y-%m-%d')
 fy = from_rep.year
 ty = to_rep.year

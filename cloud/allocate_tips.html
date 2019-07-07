@@ -1,0 +1,382 @@
+<html>
+<head>
+<style>
+table {
+  border-spacing: 0;
+  width: 100%;
+  border: 1px solid #ddd;
+}
+
+th, td {
+  text-align: left;
+  padding: 16px;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2
+}
+</style>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
+<script type="text/javascript">
+google.charts.load('current', {'packages':['table']});
+AWS.config.update({
+  region: "us-east-1",
+  // The endpoint should point to the local or remote computer where DynamoDB (downloadable) is running.
+  endpoint: 'http://localhost:8000',
+//  endpoint: 'https://464429638625.signin.aws.amazon.com/console',
+  /*
+    accessKeyId and secretAccessKey defaults can be used while using the downloadable version of DynamoDB.
+    For security reasons, do not store AWS Credentials in your files. Use Amazon Cognito instead.
+  */
+  accessKeyId: "AKIAWYIRJ4PQYN3OS2OI",
+  secretAccessKey: "F1UYVIjDNRWqqO7kq+2OgItbFyEvOm5zNqxVzcmy"
+});
+
+  /*
+     Uncomment the following code to configure Amazon Cognito and make sure to
+     remove the endpoint, accessKeyId and secretAccessKey specified in the code above.
+     Make sure Cognito is available in the DynamoDB web service region (specified above).
+     Finally, modify the IdentityPoolId and the RoleArn with your own.
+  */
+/*
+AWS.config.region = 'us-east-1'; // Region
+AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: "us-east-1:4f0994f9-700c-4c38-a93e-0c634934d483",
+    RoleArn: "arn:aws:iam::464429638625:role/Cognito_tycscUnauth_Role"
+});
+*/
+
+var dynamodb = new AWS.DynamoDB();
+var docClient = new AWS.DynamoDB.DocumentClient();
+
+var shared_tips= {
+    'Kitchen'  : 0.08,   //  8%
+    'Busser' : 0.15,     // 15%
+    'Food Runner' : 0.05,//  5%
+    'Hostess' : 0.02,    //  2%
+    'Bartender': 0.05,   //  5%
+};
+var report = { 'Kitchen': { 'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0,  'cash':0.0} };
+
+function parseDate(s) {
+   var date = s.split(' ')[0].split('-');
+   var time = s.split(' ')[1].split(':');
+   return new Date(parseInt(date[0]), parseInt(date[1]), parseInt(date[2]), parseInt(time[0]), parseInt(time[1]), 0);
+}
+
+function processData(trans, shift) {
+    //document.getElementById('textarea').innerHTML = "<a>Processed the data "+ trans.length +" txns </a>"
+    for (var u in shift) {
+      report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'total':0.0, 'worked' : 0 };
+    }
+    // Calculate the OT hours
+    for (var name in shift) {
+        var shifts = shift[name];
+        report[name]['shifts'] = shifts;
+        var dat = '0'
+        var old = {'hours':0.0}
+        var hours = 0.0;
+        for (var i =0; i< shifts.length; i++) {
+            s = shifts[i];
+            shifts[i]['tips'] = 0.0;
+            shifts[i]['buffet-tips'] = 0.0;
+            shifts[i]['extra-tips'] = 0.0;
+            shifts[i]['hours'] = 0.0;
+            shifts[i]['total'] = 0.0;
+            shifts[i]['worked'] = 0;
+            for (t in shared_tips) {
+                shifts[i][t] = 0;
+            }
+            ndate = s['Clock-In'].split(' ')[0].split('-')[2];
+            if (dat != ndate) {
+                old['hours'] = hours;
+                hours = 0.0;
+                dat  = ndate;
+            }
+            hours += s['Duration'];
+            old = s;
+            shifts[i]['fr'] = parseDate(s['Clock-In']);
+            if (s['Clock-Out'] == "\"\"") {
+                to = new Date();
+            } else {
+                to = parseDate(s['Clock-Out']);
+            }
+            shifts[i]['to'] = to;
+        }
+        old['hours'] = hours;
+        for (var i =0; i< shifts.length; i++) {
+            s = shifts[i];
+            if (s['hours'] <= 8.0) {
+                hours = s['hours']
+                ot_hours = 0.0
+            } else {
+                hours = 8.0;
+                ot_hours = (s['hours'] - 8.0);
+            }
+            report[name]['hours'] += hours;
+            report[name]['ot-hours'] += ot_hours;
+            rate = s['Hourly Rate'];
+            report[name]['pay'] += hours * rate + ot_hours*1.5*rate;
+        }
+    }
+
+    for (var i = 0; i < trans.length; i++) {
+        var tran = parseDate(trans[i]['Bill Date Time']);
+        //figure out if its buffet
+        if (trans[i]['Name'] == 'Cash') {
+            if (trans[i]['Staff'] in report) {
+                report[trans[i]['Staff']]['cash'] += trans[i]['Payment Amount'];
+            } else {
+                report[trans[i]['Kitchen']]['cash'] += trans[i]['Payment Amount'];
+            }
+        }
+        if (trans[i]['Staff'] in report) {
+            report[trans[i]['Staff']]['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65;
+        } else {
+            report['Kitchen']['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65;
+        }
+        var once = 1;
+        //distribute the tips amongst the helpers
+        for (var staff in shared_tips) {
+            var worked = 0;
+            for (var name in shift) {
+                //iterate over the shifts
+                for (var j = 0; j < shift[name].length; j++) {
+                    if (shift[name][j]['Staff Type'] != staff) continue
+                    fr = shift[name][j]['fr']
+                    to = shift[name][j]['to']
+                    if  (fr <= tran && tran <= to) {
+                        worked += 1
+                    }
+                }
+            }
+            // relax the check a little
+            if (worked == 0) {
+                for (name in shift) {
+                    //iterate over the shifts
+                    for (var j = 0; j < shift[name].length; j++) {
+                        if (shift[name][j]['Staff Type'] != staff) continue
+                        fr = shift[name][j]['fr'];
+                        to = shift[name][j]['to'];
+                        if  (fr.getFullYear() == tran.getFullYear() && fr.getMonth() == tran.getMonth() && fr.getDay() == tran.getDay()) {
+                            if ((fr.getHours() < 16 && to.getHours() < 16 && tran.getHours() < 16) || (fr.getHours() >= 16 && to.getHours() >= 16 && tran.getHours() >= 16)) {
+                                worked += 1;
+                            }
+                        }
+                    }
+                }
+            }
+//            worked = 0;
+            if (worked == 0) {
+                report['Kitchen']['tips'] += (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]
+                    //continue;
+            }
+            for (var name in shift) {
+                //iterate over the shifts
+                for (var j = 0; j < shift[name].length; j++) {
+                    var fr = shift[name][j]['fr'];
+                    var to = shift[name][j]['to'];
+                    // if its his own then need to update shift tips.
+                    if (shift[name][j]['Name'] == trans[i]['Staff']) {
+                        if  (fr <= tran && tran <= to) {
+                            if (once == 1) {
+                                shift[name][j]['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65
+                                once = 0
+                            }
+                            if (shift[name][j][staff] == 0) {
+                                shift[name][j][staff] = worked
+                            }
+                        }
+                    }
+                    if (shift[name][j]['Staff Type'] != staff) continue
+                    if  (fr <= tran && tran <= to && worked > 0) {
+                        report[name]['tips'] += ((trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]) / worked;
+                        shift[name][j]['tips'] += ((trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]) / worked;
+                        if (shift[name][j]['worked'] == 0) {
+                            shift[name][j]['worked'] = worked;
+                        }
+                        shift[name][j]['total'] += trans[i]['Tip'] + trans[i]['Gratuity'];
+                    }
+                }
+            }
+        }
+    }
+    report['Kitchen']['hours'] = 0.0
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Name');
+    for (r in report['Kitchen']) {
+      if (r == 'shifts') continue;
+      data.addColumn(typeof report['Kitchen'][r], r);
+    }
+    var rows = []
+    for (r in report) {
+        var row = [r]
+        for (h in report[r]) {
+            if (h == 'shifts') continue;
+            if (typeof report[r][h] == 'float' || typeof report[r][h] == 'number') {
+                row[row.length] = Number(report[r][h].toFixed(2));
+            } else {
+                row[row.length] = report[r][h];
+            }
+        }
+        rows[rows.length] = row;
+    }
+    data.addRows(rows);
+    var table = new google.visualization.Table(document.getElementById('textarea'));
+    table.draw(data, {showRowNumber: true, width: '100%', height: '100%'});
+
+    return;
+
+    emp = 'Darshan'
+
+    var html = "<table border='1|1'><tr>";
+    for (r in report[emp]['shifts'][0]) {
+      html += "<th>"+r+"</th>";
+    }
+    for (var i = 0; i <  report[emp]['shifts'].length; i++) {
+        html+="<tr>";
+        for (h in report[emp]['shifts'][i]) {
+            if (typeof report[emp]['shifts'][i][h] == 'float' || typeof report[emp]['shifts'][i][h] == 'number') {
+                html+="<td>"+report[emp]['shifts'][i][h].toFixed(2) +"</td>";
+            } else {
+               html+="<td>"+report[emp]['shifts'][i][h]+"</td>";
+            }
+        }
+        html+="</tr>";
+    }
+    for (r in report) {
+      html += "";
+    }
+    html += "</table>";
+
+    document.getElementById('textarea').innerHTML += html;
+}
+
+function generateTips() {
+    document.getElementById('textarea').innerHTML = ""
+    var from = document.getElementById("from_date").value
+    var to = document.getElementById("to_date").value
+    if (from == "" || to == "") {
+        document.getElementById('textarea').innerHTML = "<a>Please select the correct timeframe</a>"
+        return;
+    }
+    from_dt = new Date(from)
+    to_dt   = new Date(to)
+    if (from_dt > to_dt) {
+        document.getElementById('textarea').innerHTML = "<a>from cannot be more than less</a>"
+        return;
+    }
+    var params = {
+        TableName: "Transactions",
+        FilterExpression: "#dt between :start_dt and :end_dt",
+        ExpressionAttributeNames: {
+            "#dt": "Bill Date"
+        },
+        ExpressionAttributeValues: {
+            ":start_dt": from,
+            ":end_dt": to,
+        }
+    };
+    var html = ""
+    var txns = []
+    var shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+
+    docClient.scan(params, onTxnScan);
+
+    function onTxnScan(err, data) {
+        if (err) {
+            document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
+        } else {
+            // Print all the transactions
+            //document.getElementById('textarea').innerHTML += "Scan succeeded: count = "+ data.Items.length + "\n";
+            html = "<table border='1|1'><tr>";
+            for (h in data.Items[0]) {
+                html += "<th>"+h+"</th>";
+            }
+            data.Items.forEach(function(t) {
+                html+="<tr>";
+                for (h in data.Items[0]) {
+                   html+="<td>"+t[h]+"</td>";
+                }
+                html+="</tr>";
+                txns.push(t);
+            });
+            html +="</table>";
+        }
+        document.getElementById('textarea').innerHTML += html
+        var params = {
+            TableName: "Shifts",
+            FilterExpression: "#dt between :start_dt and :end_dt",
+            ExpressionAttributeNames: {
+                "#dt": "Clock-In-Date"
+            },
+            ExpressionAttributeValues: {
+                ":start_dt": from,
+                ":end_dt": to,
+            }
+        };
+        var html = ""
+        docClient.scan(params, onShiftScan);
+
+        function onShiftScan(err, data) {
+            if (err) {
+                document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
+            } else {
+                // Print all the transactions
+                //document.getElementById('textarea').innerHTML += "Scan succeeded: count = "+ data.Items.length + "\n";
+                html += "<table border='1|1'><tr>";
+                for (h in data.Items[0]) {
+                    html += "<th>"+h+"</th>";
+                }
+                data.Items.forEach(function(s) {
+                    html+="<tr>";
+                    for (h in data.Items[0]) {
+                       html+="<td>"+s[h]+"</td>";
+                    }
+                    html+="</tr>";
+                    if (s['Staff Type'] == 'Bar back') {
+                        s['Staff Type'] = 'Bartender'
+                    }
+                    if (s['Name'] in shift) {
+                       shift[s['Name']].push(s);
+                    } else {
+                      shift[s['Name']] = [s]
+                    }
+                });
+                html +="</table>";
+            }
+            document.getElementById('textarea').innerHTML += html
+            processData(txns, shift);
+        }
+
+    }
+
+}
+
+
+</script>
+</head>
+
+<body>
+<table border = 1>
+    <td>
+        <table border = 1>
+            <caption>Allocate Tips</caption>
+            <td>
+              From
+              <input id="from_date" type="date" value="2019-06-01">
+              To
+              <input id="to_date" type="date" value="2019-07-01">
+              <input id="scanData" type="button" value="Generate" onclick="generateTips();" />
+            </td>
+        </table>
+    </td>
+</table>
+
+<br>
+<!-- textarea readonly id= "textarea" style="width:400px; height:800px"></textarea -->
+<div id= "textarea"></div>
+
+</body>
+</html>
