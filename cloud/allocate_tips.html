@@ -385,7 +385,7 @@ function processFile(evt) {
                 row = nrow;
             }
             var cols = row.split(',');
-            if (cols.length == 13 && cols[0] != "Name") {
+            if (cols.length == 13 && cols[0] != "Name" && cols[12] != "\"\"") {
                 var year = parseInt(cols[9].split('-')[0]);
                 var now = new Date(cols[9].split(' ')[0]);
                 var start = new Date(year, 0, 0);
