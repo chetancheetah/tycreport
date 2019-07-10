@@ -15,6 +15,44 @@ th, td {
 tr:nth-child(even) {
   background-color: #f2f2f2
 }
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+ }
+
+/* Modal Content */
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+/* The Close Button */
+.close {
+    color: #aaaaaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+ }
+
+.close:hover,
+    .close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+ }
 </style>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
@@ -57,17 +95,17 @@ var shared_tips= {
     'Hostess' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
-var report = { 'Kitchen': { 'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0,  'cash':0.0} };
 
 function parseDate(s) {
    var date = s.split(' ')[0].split('-');
    var time = s.split(' ')[1].split(':');
    return new Date(parseInt(date[0]), parseInt(date[1]), parseInt(date[2]), parseInt(time[0]), parseInt(time[1]), 0);
 }
-
+var report = {};
 function processData(trans, shift) {
+    report = { 'Kitchen': { 'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0,  'cash':0.0} };
     for (var u in shift) {
-      report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'total':0.0, 'worked' : 0 };
+      report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'worked' : 0 };
     }
     // Calculate the OT hours
     for (var name in shift) {
@@ -82,7 +120,6 @@ function processData(trans, shift) {
             shifts[i]['buffet-tips'] = 0.0;
             shifts[i]['extra-tips'] = 0.0;
             shifts[i]['hours'] = 0.0;
-            shifts[i]['total'] = 0.0;
             shifts[i]['worked'] = 0;
             for (t in shared_tips) {
                 shifts[i][t] = 0;
@@ -195,7 +232,6 @@ function processData(trans, shift) {
                         if (shift[name][j]['worked'] == 0) {
                             shift[name][j]['worked'] = worked;
                         }
-                        shift[name][j]['total'] += trans[i]['Tip'] + trans[i]['Gratuity'];
                     }
                 }
             }
@@ -210,7 +246,7 @@ function processData(trans, shift) {
     }
     var rows = []
     for (r in report) {
-        var row = [r]
+        var row = [ '<div id=div_'+ r + '><a href="javascript:void(0);">' + r +"</a></div>" ]
         for (h in report[r]) {
             if (h == 'shifts') continue;
             if (typeof report[r][h] == 'float' || typeof report[r][h] == 'number') {
@@ -223,33 +259,57 @@ function processData(trans, shift) {
     }
     data.addRows(rows);
     var table = new google.visualization.Table(document.getElementById('textarea'));
-    table.draw(data, {showRowNumber: true, width: '100%', height: '100%'});
+    table.draw(data, {showRowNumber: true, width: '100%', height: '100%', sortColumn:0, allowHtml:true});
 
-    return;
-
-    emp = 'Darshan'
-
-    var html = "<table border='1|1'><tr>";
-    for (r in report[emp]['shifts'][0]) {
-      html += "<th>"+r+"</th>";
-    }
-    for (var i = 0; i <  report[emp]['shifts'].length; i++) {
-        html+="<tr>";
-        for (h in report[emp]['shifts'][i]) {
-            if (typeof report[emp]['shifts'][i][h] == 'float' || typeof report[emp]['shifts'][i][h] == 'number') {
-                html+="<td>"+report[emp]['shifts'][i][h].toFixed(2) +"</td>";
-            } else {
-               html+="<td>"+report[emp]['shifts'][i][h]+"</td>";
-            }
-        }
-        html+="</tr>";
-    }
+    var modal = document.getElementById("myModal");
+    var span = document.getElementsByClassName("close")[0];
+    span.onclick = function() {
+        modal.style.display = "none";
+    };
+    // handle the callback
     for (r in report) {
-      html += "";
+        var btn = document.getElementById("div_"+r);
+        if (!btn) continue;
+        btn.onclick = function (event) {
+            var cols = ['Name', 'Clock-In','Clock-Out', 'dow', 'Staff Type','Duration','Hourly Rate','Pay','tips'];
+            var emp = event.target.innerText;
+            var data1 = new google.visualization.DataTable();
+            for (var i = 0; i < cols.length; i++) {
+                var c = cols[i];
+                data1.addColumn(typeof c, c);
+            }
+            var td = 0;
+            var tp = 0;
+            var tt = 0;
+            var rows1 = [];
+            for (var i = 0; i <  report[emp]['shifts'].length; i++) {
+                var row1 = [];
+                for (var j = 0; j < cols.length; j++) {
+                    var c = cols[j];
+                    if (typeof report[emp]['shifts'][i][c] == 'float' || typeof report[emp]['shifts'][i][c] == 'number') {
+                        row1[row1.length]=report[emp]['shifts'][i][c].toFixed(2);
+                    } else {
+                        row1[row1.length]=report[emp]['shifts'][i][c];
+                    }
+                }
+                td += report[emp]['shifts'][i]['Duration'];
+                tp += report[emp]['shifts'][i]['Pay'];
+                tt += report[emp]['shifts'][i]['tips'];
+                rows1[rows1.length] = row1
+            }
+            rows1[rows1.length] = ["Total", "", "", "", "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2)]
+            data1.addRows(rows1);
+            var table1 = new google.visualization.Table(document.getElementById('tip_details'));
+            table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true});
+            //table1.draw(data1, {showRowNumber: true, sortColumn:0, allowHtml:true});
+            modal.style.display = "block";
+        };
     }
-    html += "</table>";
-
-    document.getElementById('textarea').innerHTML += html;
+    window.onclick =function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
 }
 
 function generateTips() {
@@ -365,6 +425,7 @@ function processFromFile(evt) {
                 var txn = {
                     "year": year,
                     "day" : day,
+                    "dow" : now.toString().split(' ')[0],
                     "Name": cols[0],
                     "Applied to Bill": Number(cols[1].replace(/[^0-9.-]+/g,"")),
                     "Tip": Number(cols[2].replace(/[^0-9.-]+/g,"")),
@@ -391,6 +452,7 @@ function processFromFile(evt) {
                 var s = {
                     "year": year,
                     "day" : day,
+                    "dow" : now.toString().split(' ')[0],
                     "Name": cols[0],
                     "Staff Type": cols[1],
                     "Clock-In-Date": cols[2].split(' ')[0],
@@ -563,6 +625,16 @@ function uploadTransactions(evt) {
 <br>
 <!-- textarea readonly id= "textarea" style="width:400px; height:800px"></textarea -->
 <div id= "textarea"></div>
+
+<!-- The Modal -->
+<div id="myModal" class="modal">
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div id="tip_details"></div>
+  </div>
+</div>
+
 <script>
     document.getElementById('fileinput1').addEventListener('change', uploadTransactions, false);
     document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
