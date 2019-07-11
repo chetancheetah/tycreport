@@ -6,12 +6,10 @@ table {
   width: 100%;
   border: 1px solid #ddd;
 }
-
 th, td {
   text-align: left;
   padding: 16px;
 }
-
 tr:nth-child(even) {
   background-color: #f2f2f2
 }
@@ -28,8 +26,7 @@ tr:nth-child(even) {
     overflow: auto; /* Enable scroll if needed */
     background-color: rgb(0,0,0); /* Fallback color */
     background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
- }
-
+}
 /* Modal Content */
 .modal-content {
     background-color: #fefefe;
@@ -38,7 +35,6 @@ tr:nth-child(even) {
     border: 1px solid #888;
     width: 80%;
 }
-
 /* The Close Button */
 .close {
     color: #aaaaaa;
@@ -46,7 +42,6 @@ tr:nth-child(even) {
     font-size: 28px;
     font-weight: bold;
  }
-
 .close:hover,
     .close:focus {
     color: #000;
@@ -70,7 +65,6 @@ AWS.config.update({
   accessKeyId: "AKIAWYIRJ4PQYN3OS2OI",
   secretAccessKey: "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"
 });
-
   /*
      Uncomment the following code to configure Amazon Cognito and make sure to
      remove the endpoint, accessKeyId and secretAccessKey specified in the code above.
@@ -84,10 +78,8 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     RoleArn: "arn:aws:iam::464429638625:role/Cognito_tycscUnauth_Role"
 });
 */
-
 var dynamodb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
-
 var shared_tips= {
     'Kitchen'  : 0.08,   //  8%
     'Busser' : 0.15,     // 15%
@@ -95,7 +87,6 @@ var shared_tips= {
     'Hostess' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
-
 function parseDate(s) {
    var date = s.split(' ')[0].split('-');
    var time = s.split(' ')[1].split(':');
@@ -156,7 +147,6 @@ function processData(trans, shift) {
             report[name]['pay'] += hours * rate + ot_hours*1.5*rate;
         }
     }
-
     for (var i = 0; i < trans.length; i++) {
         var tran = parseDate(trans[i]['Bill Date Time']);
         //figure out if its buffet
@@ -339,9 +329,7 @@ function generateTips() {
     };
     var txns = []
     var shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
-
     docClient.scan(params, onTxnScan);
-
     function onTxnScan(err, data) {
         if (err) {
             document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
@@ -362,7 +350,6 @@ function generateTips() {
             }
         };
         docClient.scan(params, onShiftScan);
-
         function onShiftScan(err, data) {
             if (err) {
                 document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
@@ -380,11 +367,8 @@ function generateTips() {
             }
             processData(txns, shift);
         }
-
     }
-
 }
-
 function processFromFile(evt) {
     var file = evt.target.files[0];
     var txns = [];
@@ -524,6 +508,7 @@ function uploadTransactions(evt) {
                         Item: {
                             "year": year,
                             "day" : day,
+                            "dow" : now.toString().split(' ')[0],
                             "Name": cols[0],
                             "Applied to Bill": Number(cols[1].replace(/[^0-9.-]+/g,"")),
                             "Tip": Number(cols[2].replace(/[^0-9.-]+/g,"")),
@@ -561,6 +546,7 @@ function uploadTransactions(evt) {
                         Item: {
                             "year": year,
                             "day" : day,
+                            "dow" : now.toString().split(' ')[0],
                             "Name": cols[0],
                             "Staff Type": cols[1],
                             "Clock-In-Date": cols[2].split(' ')[0],
@@ -592,7 +578,6 @@ function uploadTransactions(evt) {
 
 </script>
 </head>
-
 <body>
 <table border = 1>
     <td>
@@ -621,7 +606,6 @@ function uploadTransactions(evt) {
         </table>
     </td>
 </table>
-
 <br>
 <!-- textarea readonly id= "textarea" style="width:400px; height:800px"></textarea -->
 <div id= "textarea"></div>
@@ -634,11 +618,9 @@ function uploadTransactions(evt) {
     <div id="tip_details"></div>
   </div>
 </div>
-
 <script>
     document.getElementById('fileinput1').addEventListener('change', uploadTransactions, false);
     document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
 </script>
-
 </body>
 </html>
