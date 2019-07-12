@@ -53,6 +53,7 @@ tr:nth-child(even) {
 <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
 <script type="text/javascript">
 google.charts.load('current', {'packages':['table']});
+if (0) {
 AWS.config.update({
   region: "us-east-1",
   // The endpoint should point to the local or remote computer where DynamoDB (downloadable) is running.
@@ -65,19 +66,20 @@ AWS.config.update({
   accessKeyId: "AKIAWYIRJ4PQYN3OS2OI",
   secretAccessKey: "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"
 });
+}
   /*
      Uncomment the following code to configure Amazon Cognito and make sure to
      remove the endpoint, accessKeyId and secretAccessKey specified in the code above.
      Make sure Cognito is available in the DynamoDB web service region (specified above).
      Finally, modify the IdentityPoolId and the RoleArn with your own.
   */
-/*
+
 AWS.config.region = 'us-east-1'; // Region
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: "us-east-1:4f0994f9-700c-4c38-a93e-0c634934d483",
     RoleArn: "arn:aws:iam::464429638625:role/Cognito_tycscUnauth_Role"
 });
-*/
+
 var dynamodb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
 var shared_tips= {
@@ -93,7 +95,10 @@ function parseDate(s) {
    return new Date(parseInt(date[0]), parseInt(date[1]), parseInt(date[2]), parseInt(time[0]), parseInt(time[1]), 0);
 }
 var report = {};
-function processData(trans, shift) {
+var trans = [];
+var shift = {};
+
+function processData() {
     report = { 'Kitchen': { 'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0,  'cash':0.0} };
     for (var u in shift) {
       report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'worked' : 0 };
@@ -154,7 +159,7 @@ function processData(trans, shift) {
             if (trans[i]['Staff'] in report) {
                 report[trans[i]['Staff']]['cash'] += trans[i]['Payment Amount'];
             } else {
-                report[trans[i]['Kitchen']]['cash'] += trans[i]['Payment Amount'];
+                report['Kitchen']['cash'] += trans[i]['Payment Amount'];
             }
         }
         if (trans[i]['Staff'] in report) {
@@ -203,6 +208,7 @@ function processData(trans, shift) {
                 for (var j = 0; j < shift[name].length; j++) {
                     var fr = shift[name][j]['fr'];
                     var to = shift[name][j]['to'];
+
                     // if its his own then need to update shift tips.
                     if (shift[name][j]['Name'] == trans[i]['Staff']) {
                         if  (fr <= tran && tran <= to) {
@@ -236,7 +242,7 @@ function processData(trans, shift) {
     }
     var rows = []
     for (r in report) {
-        var row = [ '<div id=div_'+ r + '><a href="javascript:void(0);">' + r +"</a></div>" ]
+        var row = [ '<div id=div_'+ r.replace(' ', '_') + '><a href="javascript:void(0);">' + r +"</a></div>" ]
         for (h in report[r]) {
             if (h == 'shifts') continue;
             if (typeof report[r][h] == 'float' || typeof report[r][h] == 'number') {
@@ -258,7 +264,7 @@ function processData(trans, shift) {
     };
     // handle the callback
     for (r in report) {
-        var btn = document.getElementById("div_"+r);
+        var btn = document.getElementById("div_"+r.replace(' ', '_'));
         if (!btn) continue;
         btn.onclick = function (event) {
             var cols = ['Name', 'Clock-In','Clock-Out', 'dow', 'Staff Type','Duration','Hourly Rate','Pay','tips'];
@@ -327,15 +333,15 @@ function generateTips() {
             ":end_dt": to,
         }
     };
-    var txns = []
-    var shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+    trans = []
+    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     docClient.scan(params, onTxnScan);
     function onTxnScan(err, data) {
         if (err) {
             document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
         } else {
             data.Items.forEach(function(t) {
-                txns.push(t);
+                trans.push(t);
             });
         }
         var params = {
@@ -365,14 +371,99 @@ function generateTips() {
                     }
                 });
             }
-            processData(txns, shift);
+            processData();
         }
     }
 }
+
+function parseFile(allRows) {
+    var txns = {}
+    allRows.forEach(function (row) {
+        row = row.replace("\r", "");
+        // handle amount greater than 1000
+        if (row.search("\"\\$")>0) {
+            var nrow = "";
+            var amount = 0;
+            for (var i = 0; i < row.length; i++) {
+                var c = row.charAt(i);
+                if (c == '$')
+                    amount = 1;
+                if (c == '.')
+                    amount = 0;
+                if (c == ',' && amount)
+                    continue;
+                nrow += c;
+            }
+            row = nrow;
+        }
+        var cols = row.split(',');
+        if (cols.length == 13 && cols[0] != "Name" && cols[12] != "\"\"") {
+            var key = cols[10] + cols[9];
+            if (!(key in txns)) {
+                txns[key] = 0;
+            }
+            txns[key] += 1;
+            var year = parseInt(cols[9].split('-')[0]);
+            var now = new Date(cols[9].split(' ')[0]);
+            var start = new Date(year, 0, 0);
+            var diff =  now - start + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);;
+            var day = Math.floor(diff / (1000*60*60*24));
+            var txn = {
+                "year": year,
+                "day" : day,
+                "dow" : now.toString().split(' ')[0],
+                "Name": cols[0],
+                "Applied to Bill": Number(cols[1].replace(/[^0-9.-]+/g,"")),
+                "Tip": Number(cols[2].replace(/[^0-9.-]+/g,"")),
+                "Payment Amount": Number(cols[3].replace(/[^0-9.-]+/g,"")),
+                "CC Tip Out to House": Number(cols[4].replace(/[^0-9.-]+/g,"")),
+                "Change": Number(cols[5].replace(/[^0-9.-]+/g,"")),
+                "Type": cols[6],
+                "Subtotal with Tax": Number(cols[7].replace(/[^0-9.-]+/g,"")),
+                "Gratuity": Number(cols[8].replace(/[^0-9.-]+/g,"")),
+                "Bill Date": cols[9].split(' ')[0],
+                "Bill Date Time": cols[9],
+                "Bill Number": cols[10] + "_" + txns[key],
+                "Order Number": Number(cols[11]),
+                "Staff": cols[12],
+            };
+            trans.push(txn);
+        }
+        if (cols.length == 7 && cols[0] != "Name" && cols[1] != "\"\"") {
+            var year = parseInt(cols[2].split('-')[0]);
+            var now = new Date(cols[2].split(' ')[0]);
+            var start = new Date(year, 0, 0);
+            var diff =  now - start + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);;
+            var day = Math.floor(diff / (1000*60*60*24));
+            var s = {
+                "year": year,
+                "day" : day,
+                "dow" : now.toString().split(' ')[0],
+                "Name": cols[0],
+                "Staff Type": cols[1],
+                "Clock-In-Date": cols[2].split(' ')[0],
+                "Clock-In": cols[2],
+                "Clock-Out": cols[3],
+                "Duration": Number(cols[4]),
+                "Hourly Rate": Number(cols[5].replace(/[^0-9.-]+/g,"")),
+                "Pay": Number(cols[6].replace(/[^0-9.-]+/g,"")),
+            };
+            if (s['Staff Type'] == 'Bar back') {
+                s['Staff Type'] = 'Bartender';
+            }
+            if (s['Name'] in shift) {
+                shift[s['Name']].push(s);
+            } else {
+                shift[s['Name']] = [s];
+            }
+        }
+     });
+}
+
 function processFromFile(evt) {
     var file = evt.target.files[0];
-    var txns = [];
-    var shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+    trans = [];
+    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     if (!file) {
         return
     }
@@ -380,83 +471,8 @@ function processFromFile(evt) {
     r.onload = function(e) {
         var contents = e.target.result;
         var allRows = contents.split('\n');
-        allRows.forEach(function (row) {
-            row = row.replace("\r", "");
-            // handle amount greater than 1000
-            if (row.search("\"\\$")>0) {
-//"
-                var nrow = "";
-                var amount = 0;
-                for (var i = 0; i < row.length; i++) {
-                    var c = row.charAt(i);
-                    if (c == '$')
-                        amount = 1;
-                    if (c == '.')
-                        amount = 0;
-                    if (c == ',' && amount)
-                        continue;
-                    nrow += c;
-                }
-                row = nrow;
-            }
-            var cols = row.split(',');
-            if (cols.length == 13 && cols[0] != "Name" && cols[12] != "\"\"") {
-                var year = parseInt(cols[9].split('-')[0]);
-                var now = new Date(cols[9].split(' ')[0]);
-                var start = new Date(year, 0, 0);
-                var diff =  now - start + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);;
-                var day = Math.floor(diff / (1000*60*60*24));
-                var txn = {
-                    "year": year,
-                    "day" : day,
-                    "dow" : now.toString().split(' ')[0],
-                    "Name": cols[0],
-                    "Applied to Bill": Number(cols[1].replace(/[^0-9.-]+/g,"")),
-                    "Tip": Number(cols[2].replace(/[^0-9.-]+/g,"")),
-                    "Payment Amount": Number(cols[3].replace(/[^0-9.-]+/g,"")),
-                    "CC Tip Out to House": Number(cols[4].replace(/[^0-9.-]+/g,"")),
-                    "Change": Number(cols[5].replace(/[^0-9.-]+/g,"")),
-                    "Type": cols[6],
-                    "Subtotal with Tax": Number(cols[7].replace(/[^0-9.-]+/g,"")),
-                    "Gratuity": Number(cols[8].replace(/[^0-9.-]+/g,"")),
-                    "Bill Date": cols[9].split(' ')[0],
-                    "Bill Date Time": cols[9],
-                    "Bill Number": cols[10],
-                    "Order Number": Number(cols[11]),
-                    "Staff": cols[12],
-                };
-                txns.push(txn);
-            }
-            if (cols.length == 7 && cols[0] != "Name" && cols[1] != "\"\"") {
-                var year = parseInt(cols[2].split('-')[0]);
-                var now = new Date(cols[2].split(' ')[0]);
-                var start = new Date(year, 0, 0);
-                var diff =  now - start + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);;
-                var day = Math.floor(diff / (1000*60*60*24));
-                var s = {
-                    "year": year,
-                    "day" : day,
-                    "dow" : now.toString().split(' ')[0],
-                    "Name": cols[0],
-                    "Staff Type": cols[1],
-                    "Clock-In-Date": cols[2].split(' ')[0],
-                    "Clock-In": cols[2],
-                    "Clock-Out": cols[3],
-                    "Duration": Number(cols[4]),
-                    "Hourly Rate": Number(cols[5].replace(/[^0-9.-]+/g,"")),
-                    "Pay": Number(cols[6].replace(/[^0-9.-]+/g,"")),
-                };
-                if (s['Staff Type'] == 'Bar back') {
-                    s['Staff Type'] = 'Bartender';
-                }
-                if (s['Name'] in shift) {
-                    shift[s['Name']].push(s);
-                } else {
-                    shift[s['Name']] = [s];
-                }
-            }
-        });
-        processData(txns, shift);
+        parseFile(allRows);
+        processData();
     };
     r.readAsText(file);
 }
@@ -465,111 +481,62 @@ function uploadTransactions(evt) {
     document.getElementById('textarea').innerHTML = "";
     document.getElementById('textarea').innerHTML += "Importing transactions and shifts into DynamoDB. Please wait..." + "\n";
     var file = evt.target.files[0];
-    var txn_count = 0;
+    trans = [];
+    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     var txns = {}
     if (file) {
         var r = new FileReader();
         r.onload = function(e) {
             var contents = e.target.result;
             var allRows = contents.split('\n');
-            allRows.forEach(function (row) {
-                row = row.replace("\r", "");
-                // handle amount greater than 1000
-                if (row.search("\"\\$")>0) {
-//"
-                   var nrow = "";
-                   var amount = 0;
-                   for (var i = 0; i < row.length; i++) {
-                      var c = row.charAt(i);
-                      if (c == '$')
-                          amount = 1;
-                      if (c == '.')
-                          amount = 0;
-                      if (c == ',' && amount)
-                          continue;
-                      nrow += c;
+            parseFile(allRows);
+            var params = {
+                'RequestItems': {
+                    "Transactions" : [],
+                    "Shifts" : [],
+                }
+            }
+            var batch = [];
+            for (var i =0; i < trans.length; i++) {
+                params['RequestItems']['Transactions'].push({
+                        "PutRequest" : {
+                            "Item" : trans[i],
+                                }
+                    });
+                if (((i+1)%25)==0) {
+                    batch[batch.length] = params;
+                    params['RequestItems']['Transactions'] = [];
+                }
+            }
+            batch[batch.length] = params;
+            params['RequestItems']['Transactions'] = [];
+            var j = 0;
+            for (var s in shift) {
+                for (var i = 0; i < shift[s].length; i++) {
+                    params['RequestItems']['Shifts'].push({
+                        "PutRequest" : {
+                            "Item" : shift[s][i],
+                        }
+                        });
+                    if (((j+1)%25)==0) {
+                        batch[batch.length] = params;
+                        params['RequestItems']['Shifts'] = [];
                     }
-                    row = nrow
+                    j += 1;
                 }
-                var cols = row.split(',');
-                if (cols.length == 13 && cols[0] != "Name") {
-                    var year = parseInt(cols[9].split('-')[0]);
-                    var now = new Date(cols[9].split(' ')[0]);
-                    var start = new Date(year, 0, 0);
-                    var diff =  now - start + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);;
-                    var day = Math.floor(diff / (1000*60*60*24));
-                    var key = cols[10] + cols[9];
-                    if (!(key in txns)) {
-                        txns[key] = 0;
-                    }
-                    txns[key] += 1;
-                    var params = {
-                        TableName: "Transactions",
-                        Item: {
-                            "year": year,
-                            "day" : day,
-                            "dow" : now.toString().split(' ')[0],
-                            "Name": cols[0],
-                            "Applied to Bill": Number(cols[1].replace(/[^0-9.-]+/g,"")),
-                            "Tip": Number(cols[2].replace(/[^0-9.-]+/g,"")),
-                            "Payment Amount": Number(cols[3].replace(/[^0-9.-]+/g,"")),
-                            "CC Tip Out to House": Number(cols[4].replace(/[^0-9.-]+/g,"")),
-                            "Change": Number(cols[5].replace(/[^0-9.-]+/g,"")),
-                            "Type": cols[6],
-                            "Subtotal with Tax": Number(cols[7].replace(/[^0-9.-]+/g,"")),
-                            "Gratuity": Number(cols[8].replace(/[^0-9.-]+/g,"")),
-                            "Bill Date": cols[9].split(' ')[0],
-                            "Bill Date Time": cols[9],
-                            "Bill Number": cols[10] + "_" + txns[key],
-                            "Order Number": Number(cols[11]),
-                            "Staff": cols[12],
-                        }
-                    };
-                    docClient.put(params, function (err, data) {
+            }
+            batch[batch.length] = params;
+            params['RequestItems']['Shifts'] = [];
+            for (var i =0; i < batch.lenght; i++) {
+                docClient.batchWrite(batch[i], function(err, data) {
                         if (err) {
-                            console.log("Unable to add transaction: " + cols[11] + "\n");
+                            document.getElementById('textarea').innerHTML += "Unable upload data "  + JSON.stringify(err, undefined, 2);
                         } else {
-                            ++txn_count;
-                            document.getElementById('textarea').innerHTML += "Added:  Bill Number" + cols[10] + " Bill Date Time " +cols[9] + " count "+ txn_count+"\n";
-                            textarea.scrollTop = textarea.scrollHeight;
+                            document.getElementById('textarea').innerHTML += "Uploaded data Successfully!!";
                         }
-                   });
-                }
-                if (cols.length == 7 && cols[0] != "Name") {
-                    var year = parseInt(cols[2].split('-')[0]);
-                    var now = new Date(cols[2].split(' ')[0]);
-                    var start = new Date(year, 0, 0);
-                    var diff =  now - start + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);;
-                    var day = Math.floor(diff / (1000*60*60*24));
-                    var params = {
-                        TableName: "Shifts",
-                        Item: {
-                            "year": year,
-                            "day" : day,
-                            "dow" : now.toString().split(' ')[0],
-                            "Name": cols[0],
-                            "Staff Type": cols[1],
-                            "Clock-In-Date": cols[2].split(' ')[0],
-                            "Clock-In": cols[2],
-                            "Clock-Out": cols[3],
-                            "Duration": Number(cols[4]),
-                            "Hourly Rate": Number(cols[5].replace(/[^0-9.-]+/g,"")),
-                            "Pay": Number(cols[6].replace(/[^0-9.-]+/g,"")),
-
-                        }
-                    };
-                    docClient.put(params, function (err, data) {
-                        if (err) {
-                            console.log("Unable to add transaction: " + cols[11] + "\n");
-                        } else {
-                            document.getElementById('textarea').innerHTML += "Added: Shift for " + cols[0] + "\n";
-                            textarea.scrollTop = textarea.scrollHeight;
-                        }
-                   });
-                }
-
-            });
-    };
+                    });
+            }
+        }
         r.readAsText(file);
     } else {
         alert("Could not read transaction data file");
