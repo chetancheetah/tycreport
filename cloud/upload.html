@@ -62,8 +62,8 @@ function createTransactions() {
             { AttributeName: "Bill Date Time", AttributeType: "S" },
         ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 25,
-            WriteCapacityUnits: 25
+            ReadCapacityUnits: 1000,
+            WriteCapacityUnits: 1000
         }
     };
 
@@ -157,8 +157,8 @@ function createShifts() {
             { AttributeName: "Clock-In", AttributeType: "S" },
         ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 25,
-            WriteCapacityUnits: 25
+            ReadCapacityUnits: 1000,
+            WriteCapacityUnits: 1000
         }
     };
 

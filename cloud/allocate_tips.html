@@ -53,7 +53,7 @@ tr:nth-child(even) {
 <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
 <script type="text/javascript">
 google.charts.load('current', {'packages':['table']});
-if (1) {
+if (0) {
 AWS.config.update({
   region: "us-east-1",
   // The endpoint should point to the local or remote computer where DynamoDB (downloadable) is running.
@@ -101,7 +101,7 @@ var shift = {};
 function processData() {
     report = { 'Kitchen': { 'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0,  'cash':0.0} };
     for (var u in shift) {
-      report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, 'worked' : 0 };
+      report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, };
     }
     // Calculate the OT hours
     for (var name in shift) {
@@ -336,13 +336,32 @@ function generateTips() {
     trans = []
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     docClient.scan(params, onTxnScan);
+    document.getElementById('debug_text').innerHTML = "";
     function onTxnScan(err, data) {
         if (err) {
             document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
         } else {
+            document.getElementById('debug_text').innerHTML += "<a> Got "+data.Items.length+" transactions</a>"
             data.Items.forEach(function(t) {
                 trans.push(t);
             });
+            if (typeof data.LastEvaluatedKey != "undefined") {
+                document.getElementById('debug_text').innerHTML += "<a> getting more </a>";
+                var params = {
+                    TableName: "Transactions",
+                    FilterExpression: "#dt between :start_dt and :end_dt",
+                    ExpressionAttributeNames: {
+                        "#dt": "Bill Date"
+                    },
+                    ExpressionAttributeValues: {
+                        ":start_dt": from,
+                        ":end_dt": to,
+                    },
+                    ExclusiveStartKey : data.LastEvaluatedKey,
+                };
+                docClient.scan(params, onTxnScan);
+                return;
+            }
         }
         var params = {
             TableName: "Shifts",
@@ -370,6 +389,22 @@ function generateTips() {
                       shift[s['Name']] = [s]
                     }
                 });
+            }
+            if (typeof data.LastEvaluatedKey != "undefined") {
+                var params = {
+                    TableName: "Shifts",
+                    FilterExpression: "#dt between :start_dt and :end_dt",
+                    ExpressionAttributeNames: {
+                        "#dt": "Clock-In-Date"
+                    },
+                    ExpressionAttributeValues: {
+                        ":start_dt": from,
+                        ":end_dt": to,
+                    },
+                    ExclusiveStartKey : data.LastEvaluatedKey,
+                };
+                docClient.scan(params, onShiftScan);
+                return;
             }
             processData();
         }
@@ -466,6 +501,7 @@ function parseFile(allRows) {
             }
         }
      });
+    document.getElementById('debug_text').innerHTML = "<a> Got "+trans.length+" transactions</a>"
 }
 
 function processFromFile(evt) {
@@ -599,6 +635,7 @@ function uploadTransactions(evt) {
     </td>
 </table>
 <br>
+<div id= "debug_text"></div>
 <!-- textarea readonly id= "textarea" style="width:400px; height:800px"></textarea -->
 <div id= "textarea"></div>
 
