@@ -53,7 +53,7 @@ tr:nth-child(even) {
 <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script>
 <script type="text/javascript">
 google.charts.load('current', {'packages':['table']});
-if (0) {
+if (1) {
 AWS.config.update({
   region: "us-east-1",
   // The endpoint should point to the local or remote computer where DynamoDB (downloadable) is running.
@@ -66,7 +66,7 @@ AWS.config.update({
   accessKeyId: "AKIAWYIRJ4PQYN3OS2OI",
   secretAccessKey: "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"
 });
-}
+} else {
   /*
      Uncomment the following code to configure Amazon Cognito and make sure to
      remove the endpoint, accessKeyId and secretAccessKey specified in the code above.
@@ -79,7 +79,7 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: "us-east-1:4f0994f9-700c-4c38-a93e-0c634934d483",
     RoleArn: "arn:aws:iam::464429638625:role/Cognito_tycscUnauth_Role"
 });
-
+}
 var dynamodb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
 var shared_tips= {
@@ -296,7 +296,7 @@ function processData() {
             rows1[rows1.length] = ["Total", "", "", "", "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2)]
             data1.addRows(rows1);
             var table1 = new google.visualization.Table(document.getElementById('tip_details'));
-            table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true});
+            table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true, page: "enable", pageSize: 20});
             //table1.draw(data1, {showRowNumber: true, sortColumn:0, allowHtml:true});
             modal.style.display = "block";
         };
@@ -378,6 +378,7 @@ function generateTips() {
 
 function parseFile(allRows) {
     var txns = {}
+    var ss = {}
     allRows.forEach(function (row) {
         row = row.replace("\r", "");
         // handle amount greater than 1000
@@ -430,6 +431,13 @@ function parseFile(allRows) {
             trans.push(txn);
         }
         if (cols.length == 7 && cols[0] != "Name" && cols[1] != "\"\"") {
+            var key = cols[0] + cols[2];
+            if (!(key in ss)) {
+                ss[key] = 0;
+            } else {
+                return;
+            }
+            ss[key] += 1;
             var year = parseInt(cols[2].split('-')[0]);
             var now = new Date(cols[2].split(' ')[0]);
             var start = new Date(year, 0, 0);
@@ -477,9 +485,26 @@ function processFromFile(evt) {
     r.readAsText(file);
 }
 
+var batch = [];
+var batch_count = 0;
+function uploadToAWS(err, data) {
+    if (batch_count == batch.length) {
+        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+" Successfully!!</a></br>";
+        return;
+    }
+    if (err) {
+        document.getElementById('textarea').innerHTML += 
+        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+ " Unable upload data "  + JSON.stringify(err, undefined, 2) + "</a></br>";
+    } else {
+        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+" Successfully!!</a></br>";
+    }
+    docClient.batchWrite(batch[batch_count], uploadToAWS);
+    batch_count += 1;
+}
+
 function uploadTransactions(evt) {
     document.getElementById('textarea').innerHTML = "";
-    document.getElementById('textarea').innerHTML += "Importing transactions and shifts into DynamoDB. Please wait..." + "\n";
+    document.getElementById('textarea').innerHTML += "<a>Importing transactions and shifts into DynamoDB. Please wait...</a>" + "</br>";
     var file = evt.target.files[0];
     trans = [];
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
@@ -493,10 +518,9 @@ function uploadTransactions(evt) {
             var params = {
                 'RequestItems': {
                     "Transactions" : [],
-                    "Shifts" : [],
                 }
             }
-            var batch = [];
+            batch = [];
             for (var i =0; i < trans.length; i++) {
                 params['RequestItems']['Transactions'].push({
                         "PutRequest" : {
@@ -504,12 +528,18 @@ function uploadTransactions(evt) {
                                 }
                     });
                 if (((i+1)%25)==0) {
-                    batch[batch.length] = params;
+                    batch[batch.length] = JSON.parse(JSON.stringify(params));
                     params['RequestItems']['Transactions'] = [];
                 }
             }
-            batch[batch.length] = params;
-            params['RequestItems']['Transactions'] = [];
+            if (params['RequestItems']['Transactions'].length) {
+                batch[batch.length] = JSON.parse(JSON.stringify(params));
+            }
+            params = {
+                'RequestItems': {
+                    "Shifts" : [],
+                }
+            }
             var j = 0;
             for (var s in shift) {
                 for (var i = 0; i < shift[s].length; i++) {
@@ -519,23 +549,18 @@ function uploadTransactions(evt) {
                         }
                         });
                     if (((j+1)%25)==0) {
-                        batch[batch.length] = params;
+                        batch[batch.length] = JSON.parse(JSON.stringify(params));
                         params['RequestItems']['Shifts'] = [];
                     }
                     j += 1;
                 }
             }
-            batch[batch.length] = params;
-            params['RequestItems']['Shifts'] = [];
-            for (var i =0; i < batch.lenght; i++) {
-                docClient.batchWrite(batch[i], function(err, data) {
-                        if (err) {
-                            document.getElementById('textarea').innerHTML += "Unable upload data "  + JSON.stringify(err, undefined, 2);
-                        } else {
-                            document.getElementById('textarea').innerHTML += "Uploaded data Successfully!!";
-                        }
-                    });
+            if (params['RequestItems']['Shifts'].length) {
+                batch[batch.length] = JSON.parse(JSON.stringify(params));
             }
+            batch_count = 0;
+            docClient.batchWrite(batch[batch_count], uploadToAWS);
+            batch_count += 1;
         }
         r.readAsText(file);
     } else {
@@ -561,9 +586,9 @@ function uploadTransactions(evt) {
               </td>
               <td>
                 From
-                <input id="from_date" type="date" value="2019-06-01">
+                <input id="from_date" type="date" value="2019-07-01">
                 To
-                <input id="to_date" type="date" value="2019-07-01">
+                <input id="to_date" type="date" value="2019-07-31">
                 <input id="scanData" type="button" value="Generate" onclick="generateTips();" />
               </td>
               <td>

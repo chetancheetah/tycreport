@@ -31,7 +31,7 @@ AWS.config.update({
   accessKeyId: "AKIAWYIRJ4PQYN3OS2OI",
   secretAccessKey: "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"
 });
-}
+} else {
   /*
      Uncomment the following code to configure Amazon Cognito and make sure to
      remove the endpoint, accessKeyId and secretAccessKey specified in the code above.
@@ -44,7 +44,7 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: "us-east-1:4f0994f9-700c-4c38-a93e-0c634934d483",
     RoleArn: "arn:aws:iam::464429638625:role/Cognito_tycscUnauth_Role"
 });
-
+}
 
 var dynamodb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
@@ -62,8 +62,8 @@ function createTransactions() {
             { AttributeName: "Bill Date Time", AttributeType: "S" },
         ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5
+            ReadCapacityUnits: 25,
+            WriteCapacityUnits: 25
         }
     };
 
@@ -157,8 +157,8 @@ function createShifts() {
             { AttributeName: "Clock-In", AttributeType: "S" },
         ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5
+            ReadCapacityUnits: 25,
+            WriteCapacityUnits: 25
         }
     };
 
