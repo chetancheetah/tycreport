@@ -98,7 +98,20 @@ var report = {};
 var trans = [];
 var shift = {};
 
+function formatNumber(num) {
+    return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+}
 function processData() {
+
+    var sales = 0;
+    var tips = 0;
+    var grat = 0;
+    var pay = 0;
+    var cash = 0;
+    var tax = 0;
+    var hrs = 0;
+    var ot_hrs = 0;
+
     report = { 'Kitchen': { 'type':'Kitchen', 'hours':0.0, 'ot-hours':0.0, 'pay':0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0,  'cash':0.0} };
     for (var u in shift) {
       report[u] =  {'type':shift[u][0]['Staff Type'], 'hours':0.0, 'ot-hours':0.0, 'pay': 0.0, 'tips':0.0, 'buffet-tips':0.0, 'extra-tips':0.0, 'cash':0.0, };
@@ -150,6 +163,9 @@ function processData() {
             report[name]['ot-hours'] += ot_hours;
             rate = s['Hourly Rate'];
             report[name]['pay'] += hours * rate + ot_hours*1.5*rate;
+            pay += hours * rate + ot_hours*1.5*rate;
+            hrs += Number(hours);
+            ot_hrs += ot_hours;
         }
     }
     for (var i = 0; i < trans.length; i++) {
@@ -161,12 +177,17 @@ function processData() {
             } else {
                 report['Kitchen']['cash'] += trans[i]['Payment Amount'];
             }
+            cash += trans[i]['Payment Amount'];
         }
         if (trans[i]['Staff'] in report) {
             report[trans[i]['Staff']]['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65;
         } else {
             report['Kitchen']['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65;
         }
+        tips  += trans[i]['Tip'];
+        grat  += trans[i]['Gratuity'];
+        sales += (trans[i]['Applied to Bill'] - trans[i]['Gratuity'])/1.09;
+        tax   += (trans[i]['Applied to Bill'] - trans[i]['Gratuity'])/1.09*0.09;
         var once = 1;
         //distribute the tips amongst the helpers
         for (var staff in shared_tips) {
@@ -306,6 +327,15 @@ function processData() {
             modal.style.display = "none";
         }
     }
+
+    document.getElementById('debug_text').innerHTML = 
+        "<table border=1>" +
+        "<tr> <td> Sales </td> <td>$"+formatNumber(sales.toFixed(2))+" </td> <td> Cash </td><td>$"+formatNumber(cash.toFixed(2))+"</td></tr>"+
+        "<tr> <td> Tax </td> <td>$"+formatNumber(tax.toFixed(2))+" </td> <td> Tips </td><td>$"+formatNumber(tips.toFixed(2))+"</td></tr>"+
+        "<tr> <td> Pay </td> <td>$"+formatNumber(pay.toFixed(2))+" </td> <td> Gratiuty </td><td>$"+formatNumber(grat.toFixed(2))+"</td></tr>"+
+        "<tr> <td> Hours </td> <td>"+hrs.toFixed(2)+" hrs</td> <td> OT-Hours </td><td>"+ot_hrs.toFixed(2)+" hrs</td></tr>"+
+        "</table>";
+
 }
 
 function generateTips() {
@@ -635,9 +665,9 @@ function uploadTransactions(evt) {
     </td>
 </table>
 <br>
-<div id= "debug_text"></div>
 <!-- textarea readonly id= "textarea" style="width:400px; height:800px"></textarea -->
 <div id= "textarea"></div>
+<div id= "debug_text"></div>
 
 <!-- The Modal -->
 <div id="myModal" class="modal">
