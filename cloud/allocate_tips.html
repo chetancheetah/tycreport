@@ -89,6 +89,8 @@ var shared_tips= {
     'Hostess' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
+var server_share = 0.65;
+
 function parseDate(s) {
    var date = s.split(' ')[0].split('-');
    var time = s.split(' ')[1].split(':');
@@ -180,9 +182,9 @@ function processData() {
             cash += trans[i]['Payment Amount'];
         }
         if (trans[i]['Staff'] in report) {
-            report[trans[i]['Staff']]['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65;
+            report[trans[i]['Staff']]['tips'] += trans[i]['Tip']*server_share + trans[i]['Gratuity']*server_share;
         } else {
-            report['Kitchen']['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65;
+            report['Kitchen']['tips'] += trans[i]['Tip']*server_share + trans[i]['Gratuity']*server_share;
         }
         tips  += trans[i]['Tip'];
         grat  += trans[i]['Gratuity'];
@@ -234,7 +236,7 @@ function processData() {
                     if (shift[name][j]['Name'] == trans[i]['Staff']) {
                         if  (fr <= tran && tran <= to) {
                             if (once == 1) {
-                                shift[name][j]['tips'] += trans[i]['Tip']*0.65 + trans[i]['Gratuity']*0.65
+                                shift[name][j]['tips'] += trans[i]['Tip']*server_share + trans[i]['Gratuity']*server_share;
                                 once = 0
                             }
                             if (shift[name][j][staff] == 0) {
@@ -634,10 +636,35 @@ function uploadTransactions(evt) {
     }
 }
 
+function change_location(val) {
+    if (val == 'tycsc') {
+        shared_tips= {
+            'Kitchen'  : 0.08,   //  8%
+            'Busser' : 0.15,     // 15%
+            'Food Runner' : 0.05,//  5%
+            'Hostess' : 0.02,    //  2%
+            'Bartender': 0.05,   //  5%
+        };
+        server_share = 0.65;
+    }
+    if (val == 'tycla') {
+        shared_tips= {
+            'Kitchen'  : 0.08,   //  8%
+            'Busser' : 0.10,     // 10%
+            'Food Runner' : 0.05,//  5%
+            'Hostess' : 0.02,    //  2%
+            'Bartender': 0.05,   //  5%
+        };
+        server_share = 0.7;
+    }
+    
+}
+
 </script>
 </head>
 <body>
 <table border = 1>
+    <tr>
     <td>
         <table border = 1>
             <caption>Allocate Tips</caption>
@@ -663,6 +690,15 @@ function uploadTransactions(evt) {
             </tr>
         </table>
     </td>
+    </tr>
+    <tr>
+    <td>Location 
+    <select name="location" id="location" value="tycsc" onchange="change_location(this.value)">
+    <option>tycsc</option>
+    <option>tycla</option>
+    </select>
+    </td>
+    </tr>
 </table>
 <br>
 <!-- textarea readonly id= "textarea" style="width:400px; height:800px"></textarea -->
