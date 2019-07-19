@@ -55,15 +55,15 @@ function createTransactions() {
         TableName : "Transactions",
         KeySchema: [
             { AttributeName: "Bill Number", KeyType: "HASH"},
-            { AttributeName: "Bill Date Time", KeyType: "RANGE"},
+            { AttributeName: "Bill Date", KeyType: "RANGE"},
         ],
         AttributeDefinitions: [
             { AttributeName: "Bill Number", AttributeType: "S" },
-            { AttributeName: "Bill Date Time", AttributeType: "S" },
+            { AttributeName: "Bill Date", AttributeType: "S" },
         ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 1000,
-            WriteCapacityUnits: 1000
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5
         }
     };
 
@@ -110,14 +110,14 @@ function scanTransactions() {
     var params = {
         TableName: "Transactions",
 //        ProjectionExpression: "#yr, Name",
-        FilterExpression: "#yr between :start_yr and :end_yr",
-        ExpressionAttributeNames: {
-            "#yr": "year"
-        },
-        ExpressionAttributeValues: {
-            ":start_yr": 1950,
-            ":end_yr": 2019
-        }
+//        FilterExpression: "#yr between :start_yr and :end_yr",
+//        ExpressionAttributeNames: {
+//            "#yr": "year"
+//        },
+//        ExpressionAttributeValues: {
+//            ":start_yr": 1950,
+//            ":end_yr": 2019
+//        }
     };
     var html = ""
     docClient.scan(params, onScan);
@@ -157,8 +157,8 @@ function createShifts() {
             { AttributeName: "Clock-In", AttributeType: "S" },
         ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 1000,
-            WriteCapacityUnits: 1000
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5
         }
     };
 
@@ -203,14 +203,14 @@ function scanShifts() {
     var params = {
         TableName: "Shifts",
 //        ProjectionExpression: "#yr, Name",
-        FilterExpression: "#yr between :start_yr and :end_yr",
-        ExpressionAttributeNames: {
-            "#yr": "year"
-        },
-        ExpressionAttributeValues: {
-            ":start_yr": 1950,
-            ":end_yr": 2019
-        }
+//        FilterExpression: "#yr between :start_yr and :end_yr",
+//        ExpressionAttributeNames: {
+//            "#yr": "year"
+//        },
+//        ExpressionAttributeValues: {
+//            ":start_yr": 1950,
+//            ":end_yr": 2019
+//        }
     };
     var html = ""
     docClient.scan(params, onScan);
