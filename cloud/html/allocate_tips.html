@@ -247,7 +247,11 @@ function processData() {
         }
         rows[rows.length] = row;
     }
-    data.addRows(rows);
+    try {
+        data.addRows(rows);
+    } catch (err) {
+        console.error(err);
+    }
     var table = new google.visualization.Table(document.getElementById('textarea'));
     table.draw(data, {showRowNumber: true, width: '100%', height: '100%', sortColumn:0, allowHtml:true});
 
@@ -338,33 +342,27 @@ function generateTips() {
     };
     trans = []
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+    $.ajax({
+        url : 'http://localhost:8888/request.php',
+        method : 'POST',
+        data:  params,
+        success: onTxnScan,
+    });
+
     //docClient.scan(params, onTxnScan);
     document.getElementById('debug_text').innerHTML = "";
-    function onTxnScan(err, data) {
-        if (err) {
+    function onTxnScan(data) {
+        if (data == 'Fail') {
             document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
         } else {
-            document.getElementById('debug_text').innerHTML += "<a> Got "+data.Items.length+" transactions</a>"
-            data.Items.forEach(function(t) {
+            document.getElementById('debug_text').innerHTML += "<a> Got "+data.length+" transactions</a>"
+            data.forEach(function(t) {
+                t['Applied to Bill'] = Number(t['Applied to Bill']);
+                t['Tip'] = Number(t['Tip']);
+                t['Payment Amount'] = Number(t['Payment Amount']);
+                t['Gratuity'] = Number(t['Gratuity']);
                 trans.push(t);
             });
-            if (typeof data.LastEvaluatedKey != "undefined") {
-                document.getElementById('debug_text').innerHTML += "<a> getting more </a>";
-                var params = {
-                    TableName: "Transactions",
-                    FilterExpression: "#dt between :start_dt and :end_dt",
-                    ExpressionAttributeNames: {
-                        "#dt": "Bill Date"
-                    },
-                    ExpressionAttributeValues: {
-                        ":start_dt": from,
-                        ":end_dt": to,
-                    },
-                    ExclusiveStartKey : data.LastEvaluatedKey,
-                };
-                //docClient.scan(params, onTxnScan);
-                return;
-            }
         }
         var params = {
             TableName: "Shifts",
@@ -377,12 +375,20 @@ function generateTips() {
                 ":end_dt": to,
             }
         };
-        //docClient.scan(params, onShiftScan);
-        function onShiftScan(err, data) {
-            if (err) {
+        $.ajax({
+            url : 'http://localhost:8888/request.php',
+            method : 'POST',
+            data:  params,
+            success: onShiftScan,
+        });
+        function onShiftScan(data) {
+            if (data == 'Fail') {
                 document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
             } else {
-                data.Items.forEach(function(s) {
+                data.forEach(function(s) {
+                    s['Duration'] = Number(s['Duration']);
+                    s['Hourly Rate'] = Number(s['Hourly Rate']);
+                    s['Pay'] = Number(s['Pay']);
                     if (s['Staff Type'] == 'Bar back') {
                         s['Staff Type'] = 'Bartender'
                     }
@@ -392,22 +398,6 @@ function generateTips() {
                       shift[s['Name']] = [s]
                     }
                 });
-            }
-            if (typeof data.LastEvaluatedKey != "undefined") {
-                var params = {
-                    TableName: "Shifts",
-                    FilterExpression: "#dt between :start_dt and :end_dt",
-                    ExpressionAttributeNames: {
-                        "#dt": "Clock-In-Date"
-                    },
-                    ExpressionAttributeValues: {
-                        ":start_dt": from,
-                        ":end_dt": to,
-                    },
-                    ExclusiveStartKey : data.LastEvaluatedKey,
-                };
-                //docClient.scan(params, onShiftScan);
-                return;
             }
             processData();
         }

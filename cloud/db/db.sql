@@ -2,10 +2,10 @@
 CREATE TABLE transactions
   (
 	`Name` VARCHAR(32),
-	`Applied to Bill` INT,
-	`Tip` INT,
-	`Payment Amount` INT,
-	`Gratuity` INT,
+	`Applied to Bill` FLOAT,
+	`Tip` FLOAT,
+	`Payment Amount` FLOAT,
+	`Gratuity` FLOAT,
 	`Bill Date` DATE,
 	`Bill Date Time` DATETIME,
 	`Bill Number` VARCHAR(32),
@@ -21,8 +21,8 @@ CREATE TABLE shifts
 	 `Clock-In-Date` DATE,
 	 `Clock-In` DATETIME,
 	 `Clock-Out` DATETIME,
-	 `Duration` INT,
-	 `Hourly Rate` INT,
-	 `Pay`  INT,
+	 `Duration` FLOAT,
+	 `Hourly Rate` FLOAT,
+	 `Pay`  FLOAT,
 	 PRIMARY KEY ( `Name`, `Clock-In`)
  );

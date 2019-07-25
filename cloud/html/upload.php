@@ -15,7 +15,7 @@ foreach ($transactions as $t) {
       $bdt = $t['Bill Date Time'];
       $bn = $t['Bill Number'];
       $staff = $t['Staff'];
-      $sql = "INSERT IGNORE INTO `transactions` (`Name`,`Applied to Bill`, `Tip`, `Payment Amount`, `Gratuity`, `Bill Date`, `Bill Date Time`, `Bill Number`,`Staff`) VALUES ( '$name', '$atobill', '$pamt', '$tip', '$grat', '$bd', '$bdt', '$bn', '$staff' );";
+      $sql = "INSERT IGNORE INTO `transactions` (`Name`,`Applied to Bill`, `Tip`, `Payment Amount`, `Gratuity`, `Bill Date`, `Bill Date Time`, `Bill Number`,`Staff`) VALUES ( '$name', '$atobill', '$tip', '$pamt', '$grat', '$bd', '$bdt', '$bn', '$staff' );";
     $result = $conn->query($sql);
     if ($result) {
     } else {
