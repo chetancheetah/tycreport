@@ -507,23 +507,22 @@ function processFromFile(evt) {
 
 var batch = [];
 var batch_count = 0;
-function uploadToAWS(err, data) {
+function uploadToAWS(data) {
     if (batch_count == batch.length) {
         document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+" Successfully!!</a></br>";
         return;
     }
-    if (err) {
-        document.getElementById('textarea').innerHTML += 
-        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+ " Unable upload data "  + JSON.stringify(err, undefined, 2) + "</a></br>";
-    } else {
+    if (data == 'Success') {
         document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+" Successfully!!</a></br>";
+    } else {
+        document.getElementById('textarea').innerHTML += 
+        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+ " Unable upload data "  + JSON.stringify(data, undefined, 2) + "</a></br>";
     }
     $.ajax({
-        url : 'http://52.90.103.59/tycscreports/upload.php',
+        //        url : 'http://52.90.103.59/tycscreports/upload.php',
+        url : 'http://localhost:8888/upload.php',
         method : 'POST',
-        data: {
-            batch[batch_count],
-        },
+        data: batch[batch_count],
         success: uploadToAWS,
     });
     //docClient.batchWrite(batch[batch_count], uploadToAWS);
@@ -588,11 +587,10 @@ function uploadTransactions(evt) {
             }
             batch_count = 0;
             $.ajax({
-                url : 'http://52.90.103.59/tycscreports/upload.php',
+                url : 'http://localhost:8888/upload.php',
+//                url : 'http://52.90.103.59/tycscreports/upload.php',
                 method : 'POST',
-                data: {
-                    batch[batch_count],
-                },
+                data:  batch[batch_count],
                 success: uploadToAWS,
             });
             //docClient.batchWrite(batch[batch_count], uploadToAWS);
