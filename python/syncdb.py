@@ -73,11 +73,11 @@ try:
         raise
     
     imapSession.select('[Gmail]/All Mail')
-    typ, data = imapSession.search(None, 'ALL')
+    typ, data = imapSession.search(None, '(UNSEEN)')
     if typ != 'OK':
         print 'Error searching Inbox.'
         raise
-    
+    to_delete = []
     # Iterating over all emails
     for msgId in data[0].split():
         typ, messageParts = imapSession.fetch(msgId, '(RFC822)')
@@ -93,11 +93,22 @@ try:
                 continue
             if part.get('Content-Disposition') is None:
                 continue
+            fileName = part.get_filename()
+            if "TemplateReport" not in fileName:
+                print "Skip processing " + fileName
+                continue
+            print "Processing " + fileName
             contents = part.get_payload(decode=True)
             contents = contents.replace('\r', '')
             rows = contents.split('\n')
             upload_to_db(rows)
-            
+            #mark the messges to be deleted.
+            to_delete.append(msgId)
+
+    for msgId in to_delete:
+        print "Deleting message " + str(msgId)
+        print imapSession.store(msgId, '+FLAGS', '\\Deleted')
+    imapSession.expunge()            
     imapSession.close()
     imapSession.logout()
 except Exception as e:
