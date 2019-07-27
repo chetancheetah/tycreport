@@ -9,13 +9,14 @@ import mysql.connector
 
 userName = sys.argv[1]
 passwd = sys.argv[2]
+port = sys.argv[3]
 
 mydb = mysql.connector.connect(
-    host="localhost",
+    host="127.0.0.1",
     user=userName,
     passwd=passwd,
     database=userName,
-    port=8889,
+    port=port,
 )
 
 def upload_to_db(rows):
@@ -115,5 +116,6 @@ except Exception as e:
     print 'Not able to download all attachments.' + e.message
 
 mydb.close()
-            
+print str(datetime.now())
+print "<<<<<< Done"            
         
