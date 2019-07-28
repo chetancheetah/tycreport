@@ -53,7 +53,10 @@ tr:nth-child(even) {
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script type="text/javascript">
 google.charts.load('current', {'packages':['table']});
-var shared_tips= {
+//  var base_url = 'theyellowchillisantaclara.com/tycreport';
+  var base_url = 'localhost:8888';
+
+  var shared_tips= {
     'Kitchen'  : 0.08,   //  8%
     'Busser' : 0.15,     // 15%
     'Food Runner' : 0.05,//  5%
@@ -300,7 +303,7 @@ function generateTips() {
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     $.ajax({
 //        url : 'http://localhost:8888/request.php',
-        url : 'http://theyellowchillisantaclara.com/tycreport/request.php',
+        url : 'http://'+base_url+'/request.php',
         method : 'POST',
         data:  params,
         success: onTxnScan,
@@ -334,7 +337,7 @@ function generateTips() {
         };
         $.ajax({
 //            url : 'http://localhost:8888/request.php',
-            url : 'http://theyellowchillisantaclara.com/tycreport/request.php',
+            url : 'http://'+base_url+'/request.php',
             method : 'POST',
             data:  params,
             success: onShiftScan,
@@ -387,7 +390,7 @@ function loginEmployee() {
     
     $.ajax({
 //        url : 'http://localhost:8888/request.php',
-        url : 'http://theyellowchillisantaclara.com/tycreport/request.php',
+        url : 'http://'+base_url+'/request.php',
         method : 'POST',
         data:  params,
         success: onEmpLogin,
@@ -426,7 +429,7 @@ window.onload = function() {
     
     $.ajax({
 //        url : 'http://localhost:8888/request.php',
-        url : 'http://theyellowchillisantaclara.com/tycreport/request.php',
+        url : 'http://'+base_url+'/request.php',
         method : 'POST',
         data:  params,
         success: onEmpScan,

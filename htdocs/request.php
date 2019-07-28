@@ -41,7 +41,21 @@ if ($table == 'Shifts') {
 }
 if ($table == 'Employees') {
    $name = $_POST['ExpressionAttributeValues'][':name'];
-   if ( $name == 'ALL' ) {
+   if ( $name == '*' ) {
+      $sql = "SELECT `name` FROM `employees`";
+      $result = $conn->query($sql);
+      if ($result) {
+          $rows = array();
+          while($r = mysqli_fetch_assoc($result)) {
+             $rows[] = $r;
+          }
+          print json_encode($rows);
+          return;
+       } else {
+          echo "Fail";
+          return;
+       }
+   } else if ( $name == 'ALL' ) {
       $sql = "SELECT `name` FROM `employees` WHERE `pass` != ''";
       $result = $conn->query($sql);
       if ($result) {

@@ -3,6 +3,7 @@ $conn = new mysqli('localhost', 'tycscreports', 'TYCSC123', 'tycscreports');
 
 $transactions = $_POST['RequestItems']['Transactions']; 
 $shifts       = $_POST['RequestItems']['Shifts']; 
+$employees    = $_POST['RequestItems']['Employees']; 
 
 foreach ($transactions as $t) {
       $t = $t['PutRequest']['Item'];
@@ -50,6 +51,18 @@ foreach ($shifts as $s) {
     }
 }
 
+foreach ($employees as $e) {
+    $e = $e['PutRequest']['Item'];
+    $name = $e['name'];
+    $pass = $e['pass'];
+    $sql = "UPDATE IGNORE `employees` SET `pass` = '$pass' WHERE `name` = '$name';";
+    $result = $conn->query($sql);
+    if ($result) {
+    } else {
+        echo "Fail";
+        return;
+    }
+}
 echo "Success";
 
 ?>
