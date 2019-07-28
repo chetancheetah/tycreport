@@ -258,7 +258,7 @@ function processData() {
         tt += report[emp]['shifts'][i]['tips'];
         rows1[rows1.length] = row1
     }
-    rows1[rows1.length] = ["Total", "", "", "", "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2)]
+    rows1[rows1.length] = ["Total", "", "",  "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2)]
     data1.addRows(rows1);
     var table1 = new google.visualization.Table(document.getElementById('textarea'));
     table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true, page: "enable", pageSize: 20});
