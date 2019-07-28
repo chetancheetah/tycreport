@@ -26,3 +26,10 @@ CREATE TABLE shifts
 	 `Pay`  FLOAT,
 	 PRIMARY KEY ( `Name`, `Clock-In`)
  );
+
+CREATE TABLE employees
+  (
+	 `Name` VARCHAR(64),
+	 `pass` VARCHAR(10),
+         PRIMARY KEY ( `name` )
+ );

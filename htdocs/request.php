@@ -39,4 +39,34 @@ if ($table == 'Shifts') {
       return;
    }
 }
+if ($table == 'Employees') {
+   $name = $_POST['ExpressionAttributeValues'][':name'];
+   if ( $name == 'ALL' ) {
+      $sql = "SELECT `name` FROM `employees` WHERE `pass` != ''";
+      $result = $conn->query($sql);
+      if ($result) {
+          $rows = array();
+          while($r = mysqli_fetch_assoc($result)) {
+             $rows[] = $r;
+          }
+          print json_encode($rows);
+          return;
+       } else {
+          echo "Fail";
+          return;
+       }
+   } else {
+      $pass = $_POST['ExpressionAttributeValues'][':pass'];
+      $sql = "SELECT * FROM `employees` WHERE `name` = '$name' AND `pass` = '$pass';";
+      $result = $conn->query($sql);
+      if ($result && $result->num_rows == 1) {
+          echo 'Success';
+          return;
+      } else {
+          echo 'Fail';
+          return;
+      }
+   }
+}
+
 ?>

@@ -24,17 +24,24 @@ foreach ($transactions as $t) {
     }
 }
 foreach ($shifts as $s) {
-      $s = $s['PutRequest']['Item'];
-      $dow = $s['dow'];
-      $name = $s['Name'];
-      $st = $s['Staff Type'];
-      $cid = $s['Clock-In-Date'];
-      $ci = $s['Clock-In'];
-      $co = $s['Clock-Out'];
-      $dur = $s['Duration'];
-      $hr = $s['Hourly Rate'];
-      $pay = $s['Pay'];
-      $sql = "INSERT IGNORE INTO `shifts` (`dow`, `Name`, `Staff Type`, `Clock-In-Date`, `Clock-In`, `Clock-Out`, `Duration`, `Hourly Rate`, `Pay`) VALUES ( '$dow', '$name', '$st', '$cid', '$ci', '$co', '$dur', '$hr', '$pay'  );";
+    $s = $s['PutRequest']['Item'];
+    $dow = $s['dow'];
+    $name = $s['Name'];
+    $st = $s['Staff Type'];
+    $cid = $s['Clock-In-Date'];
+    $ci = $s['Clock-In'];
+    $co = $s['Clock-Out'];
+    $dur = $s['Duration'];
+    $hr = $s['Hourly Rate'];
+    $pay = $s['Pay'];
+    $sql = "INSERT IGNORE INTO `shifts` (`dow`, `Name`, `Staff Type`, `Clock-In-Date`, `Clock-In`, `Clock-Out`, `Duration`, `Hourly Rate`, `Pay`) VALUES ( '$dow', '$name', '$st', '$cid', '$ci', '$co', '$dur', '$hr', '$pay'  );";
+    $result = $conn->query($sql);
+    if ($result) {
+    } else {
+        echo "Fail";
+        return;
+    }
+    $sql = "INSERT IGNORE INTO `employees` (`name`, `pass`) VALUES ( '$name', '');";
     $result = $conn->query($sql);
     if ($result) {
     } else {
