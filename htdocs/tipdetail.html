@@ -53,8 +53,8 @@ tr:nth-child(even) {
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script type="text/javascript">
 google.charts.load('current', {'packages':['table']});
-//  var base_url = 'theyellowchillisantaclara.com/tycreport';
-  var base_url = 'localhost:8888';
+  var base_url = 'theyellowchillisantaclara.com/tycreport';
+//  var base_url = 'localhost:8888';
 
   var shared_tips= {
     'Kitchen'  : 0.08,   //  8%
@@ -302,7 +302,6 @@ function generateTips() {
     trans = []
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     $.ajax({
-//        url : 'http://localhost:8888/request.php',
         url : 'http://'+base_url+'/request.php',
         method : 'POST',
         data:  params,
@@ -336,7 +335,6 @@ function generateTips() {
             }
         };
         $.ajax({
-//            url : 'http://localhost:8888/request.php',
             url : 'http://'+base_url+'/request.php',
             method : 'POST',
             data:  params,
@@ -428,7 +426,6 @@ window.onload = function() {
     };
     
     $.ajax({
-//        url : 'http://localhost:8888/request.php',
         url : 'http://'+base_url+'/request.php',
         method : 'POST',
         data:  params,
