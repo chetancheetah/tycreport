@@ -263,7 +263,7 @@ function processData() {
     var table1 = new google.visualization.Table(document.getElementById('textarea'));
     table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true, page: "enable", pageSize: 20});
     
-    
+/*    
     document.getElementById('debug_text').innerHTML = 
         "<table border=1>" +
         "<tr> <td> Sales </td> <td>$"+formatNumber(sales.toFixed(2))+" </td> <td> Cash </td><td>$"+formatNumber(cash.toFixed(2))+"</td></tr>"+
@@ -271,7 +271,7 @@ function processData() {
         "<tr> <td> Pay </td> <td>$"+formatNumber(pay.toFixed(2))+" </td> <td> Gratiuty </td><td>$"+formatNumber(grat.toFixed(2))+"</td></tr>"+
         "<tr> <td> Hours </td> <td>"+hrs.toFixed(2)+" hrs</td> <td> OT-Hours </td><td>"+ot_hrs.toFixed(2)+" hrs</td></tr>"+
         "</table>";
-
+*/
 }
 
 function generateTips() {
