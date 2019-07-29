@@ -106,6 +106,8 @@ function processData() {
             shifts[i]['extra-tips'] = 0.0;
             shifts[i]['hours'] = 0.0;
             shifts[i]['worked'] = 0;
+            shifts[i]['sales'] = 0;
+            shifts[i]['tips+gratuity'] = 0;
             for (t in shared_tips) {
                 shifts[i][t] = 0;
             }
@@ -211,10 +213,13 @@ function processData() {
                         if  (fr <= tran && tran <= to) {
                             if (once == 1) {
                                 shift[name][j]['tips'] += trans[i]['Tip']*server_share + trans[i]['Gratuity']*server_share;
-                                once = 0
+                                shift[name][j]['tips+gratuity'] += trans[i]['Tip'];
+                                shift[name][j]['tips+gratuity'] += trans[i]['Gratuity'];
+                                shift[name][j]['sales']      += (trans[i]['Applied to Bill'] - trans[i]['Gratuity'])/1.09;
+                                once = 0;
                             }
-                            if (shift[name][j][staff] == 0) {
-                                shift[name][j][staff] = worked
+                            if (worked > shift[name][j][staff]) {
+                                shift[name][j][staff] = worked;
                             }
                         }
                     }
@@ -222,9 +227,12 @@ function processData() {
                     if  (fr <= tran && tran <= to && worked > 0) {
                         report[name]['tips'] += ((trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]) / worked;
                         shift[name][j]['tips'] += ((trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]) / worked;
-                        if (shift[name][j]['worked'] == 0) {
+                        if (worked > shift[name][j]['worked']) {
                             shift[name][j]['worked'] = worked;
                         }
+                        shift[name][j]['tips+gratuity'] += trans[i]['Tip'];
+                        shift[name][j]['tips+gratuity'] += trans[i]['Gratuity'];
+                        shift[name][j]['sales']      += (trans[i]['Applied to Bill'] - trans[i]['Gratuity'])/1.09;
                     }
                 }
             }
@@ -233,7 +241,7 @@ function processData() {
 
     var emp = document.getElementById("emp").value;
     
-    var cols = ['Name', 'Clock-In','Clock-Out', 'Staff Type','Duration','Hourly Rate','Pay','tips'];
+    var cols = ['Name', 'Clock-In','Clock-Out','dow', 'Staff Type','Duration','Hourly Rate','Pay','tips', 'worked', 'sales', 'tips+gratuity'];
     var data1 = new google.visualization.DataTable();
     for (var i = 0; i < cols.length; i++) {
         var c = cols[i];
@@ -258,7 +266,7 @@ function processData() {
         tt += report[emp]['shifts'][i]['tips'];
         rows1[rows1.length] = row1
     }
-    rows1[rows1.length] = ["Total", "", "",  "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2)]
+    rows1[rows1.length] = ["Total","", "", "",  "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2), '', '', '']
     data1.addRows(rows1);
     var table1 = new google.visualization.Table(document.getElementById('textarea'));
     table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true, page: "enable", pageSize: 20});
