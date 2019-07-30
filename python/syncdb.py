@@ -95,7 +95,7 @@ try:
             if part.get('Content-Disposition') is None:
                 continue
             fileName = part.get_filename()
-            if "TemplateReport" not in fileName:
+            if "Report" not in fileName:
                 print "Skip processing " + fileName
                 continue
             print "Processing " + fileName
