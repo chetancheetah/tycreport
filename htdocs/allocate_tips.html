@@ -73,7 +73,7 @@ function parseDate(s) {
 var report = {};
 var trans = [];
 var shift = {};
-
+  
 function formatNumber(num) {
     return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
 }
@@ -476,6 +476,35 @@ function parseFile(allRows) {
             } else {
                 shift[s['Name']] = [s];
             }
+        }
+        if (cols.length == 9 && cols[0] != "Staff Name" && cols[1] != "\"\"") {
+            var emp = cols[0];
+            var bstart = parseDate(cols[4]);
+            var bend = Date();
+            if (cols[5] != "\"\"") {
+                bend = parseDate(cols[5]);
+            }
+            var duration = Math.abs(bend - bstart)/ 36e5;
+            var shifts = shift[emp];
+            for (var i =0; i < shifts.length; i++) {
+                var s = shifts[i];
+                var sstart = parseDate(s['Clock-In']);
+                var send = new Date();
+                if (s['Clock-Out'] != "\"\"") {
+                    send = parseDate(s['Clock-Out']);
+                }
+                if (bstart >= sstart && bstart <= send) {
+                    s = JSON.parse(JSON.stringify(s));
+                    shift[emp][i]['Clock-Out'] = cols[4];
+                    shift[emp][i]['Duration'] = Math.abs(bstart - sstart)/36e5;
+                    if (cols[5] != "\"\"") {
+                        s['Clock-In'] = cols[5];
+                        s['Duration'] = Math.abs(send - bend)/36e5;
+                        shift[emp].push(s);
+                    }
+                    break;
+                }
+            }   
         }
      });
     document.getElementById('debug_text').innerHTML = "<a> Got "+trans.length+" transactions</a>"
