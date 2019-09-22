@@ -1,3 +1,4 @@
+import sys
 import os
 from datetime import datetime
 
@@ -10,11 +11,15 @@ time = datetime.now()
 fname = 'logs/'+time.strftime('%Y_%B_%d_%A')+'.txt'
 print fname
 f = open(fname,"a")
-ret = os.system("ping -o -c 10 -W 3000 10.0.0.179")
+ret = os.system("ping -o -c 10 -W 3000 "+sys.argv[1])
 string = time.strftime('%I:%M %p = ')
 if ret == 0:
     string += 'alive'
 else:
     string += 'dead'
 print string
-f.write(string+'\n')
+if time.hour > 9 or ret == 0:
+    f.write(string+'\n')
+
+# add this to crontab -e
+#*/5 * * * * check_ip.py <ip address> >& /dev/null
