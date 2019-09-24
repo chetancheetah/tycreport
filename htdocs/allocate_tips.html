@@ -56,6 +56,7 @@ google.charts.load('current', {'packages':['table']});
   var base_url = 'theyellowchillisantaclara.com/tycreport';
 //  var base_url = 'localhost:8888';
 
+  var tipback_server = 0;
   var shared_tips= {
     'Kitchen'  : 0.08,   //  8%
     'Busser' : 0.15,     // 15%
@@ -197,7 +198,11 @@ function processData() {
             }
 //            worked = 0;
             if (worked == 0) {
-                report['Kitchen']['tips'] += (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]
+                if (tipback_server == 1 && trans[i]['Staff'] in report) {
+                    report[trans[i]['Staff']]['tips'] += (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]
+                } else {
+                    report['Kitchen']['tips'] += (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]
+                }
                     //continue;
             }
             for (var name in shift) {
@@ -632,8 +637,9 @@ function change_location(val) {
             'Bartender': 0.05,   //  5%
         };
         server_share = 0.65;
+        tipback_server = 0;
     }
-    if (val == 'tycla') {
+    if (val == 'tycla' || val == 'ibgfremont') {
         shared_tips= {
             'Kitchen'  : 0.08,   //  8%
             'Busser' : 0.10,     // 10%
@@ -642,6 +648,7 @@ function change_location(val) {
             'Bartender': 0.05,   //  5%
         };
         server_share = 0.7;
+        tipback_server = 1;
     }
 
 }
@@ -757,6 +764,7 @@ window.onload = function() {
     <select name="location" id="location" value="tycsc" onchange="change_location(this.value)">
     <option>tycsc</option>
     <option>tycla</option>
+    <option>ibgfremont</option>
     </select>
     Employee
     <select name="emp" id="emp" value="Select" onchange="change_emp(this.value)">
