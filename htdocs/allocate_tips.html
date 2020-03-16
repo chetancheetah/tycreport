@@ -490,7 +490,7 @@ function parseFile(allRows) {
                 bend = parseDate(cols[5]);
             }
             var duration = Math.abs(bend - bstart)/ 36e5;
-            if (duration == 0) continue;
+            if (duration == 0) return;
             var shifts = shift[emp];
             for (var i =0; i < shifts.length; i++) {
                 var s = shifts[i];
