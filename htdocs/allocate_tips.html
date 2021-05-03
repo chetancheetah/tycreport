@@ -449,7 +449,7 @@ function parseFile(allRows) {
                 "Bill Date": cols[9].split(' ')[0],
                 "Bill Date Time": cols[9],
                 "Bill Number": cols[10] + "_" + txns[key],
-                "Staff": cols[12],
+                "Staff": cols[12].trim(),
             };
             trans.push(txn);
         }
@@ -464,7 +464,7 @@ function parseFile(allRows) {
             var now = new Date(cols[2].split(' ')[0]);
             var s = {
                 "dow" : now.toString().split(' ')[0],
-                "Name": cols[0],
+                "Name": cols[0].trim(),
                 "Staff Type": cols[1],
                 "Clock-In-Date": cols[2].split(' ')[0],
                 "Clock-In": cols[2],
