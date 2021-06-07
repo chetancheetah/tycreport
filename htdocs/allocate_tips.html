@@ -434,6 +434,11 @@ function parseFile(allRows) {
             row = nrow;
         }
         var cols = row.split(',');
+	if (cols.length == 14) {
+	    ele = cols.pop();
+	    cols.pop()
+	    cols.push(ele)
+	}
         if (cols.length == 13 && cols[0] != "Name" && cols[12] != "\"\"") {
             var key = cols[10] + cols[9];
             if (!(key in txns)) {
@@ -449,10 +454,14 @@ function parseFile(allRows) {
                 "Bill Date": cols[9].split(' ')[0],
                 "Bill Date Time": cols[9],
                 "Bill Number": cols[10] + "_" + txns[key],
-                "Staff": cols[12],
+                "Staff": cols[12].trim(),
             };
             trans.push(txn);
         }
+	if (cols.length == 8) {
+	    cols.shift();
+	}
+
         if (cols.length == 7 && cols[0] != "Name" && cols[1] != "\"\"") {
             var key = cols[0] + cols[2];
             if (!(key in ss)) {
@@ -464,7 +473,7 @@ function parseFile(allRows) {
             var now = new Date(cols[2].split(' ')[0]);
             var s = {
                 "dow" : now.toString().split(' ')[0],
-                "Name": cols[0],
+                "Name": cols[0].trim(),
                 "Staff Type": cols[1],
                 "Clock-In-Date": cols[2].split(' ')[0],
                 "Clock-In": cols[2],
@@ -482,8 +491,11 @@ function parseFile(allRows) {
                 shift[s['Name']] = [s];
             }
         }
+	if (cols.length == 10) {
+	    cols.shift();
+	}
         if (cols.length == 9 && cols[0] != "Staff Name" && cols[1] != "\"\"") {
-            var emp = cols[0];
+            var emp = cols[0].trim();
             var bstart = parseDate(cols[4]);
             var bend = Date();
             if (cols[5] != "\"\"") {
