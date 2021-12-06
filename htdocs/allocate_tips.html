@@ -74,7 +74,7 @@ function parseDate(s) {
 var report = {};
 var trans = [];
 var shift = {};
-  
+
 function formatNumber(num) {
     return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
 }
@@ -433,13 +433,18 @@ function parseFile(allRows) {
             }
             row = nrow;
         }
-        var cols = row.split(',');
+        var cols = row.split('","');
+        cols[0] = cols[0].replace('"','').trim()
+        if (cols[0] == "Name" ) {
+            return;
+        }
+
 	if (cols.length == 14) {
 	    ele = cols.pop();
 	    cols.pop()
 	    cols.push(ele)
 	}
-        if (cols.length == 13 && cols[0] != "Name" && cols[12] != "\"\"") {
+        if (cols.length == 13) {
             var key = cols[10] + cols[9];
             if (!(key in txns)) {
                 txns[key] = 0;
@@ -454,33 +459,34 @@ function parseFile(allRows) {
                 "Bill Date": cols[9].split(' ')[0],
                 "Bill Date Time": cols[9],
                 "Bill Number": cols[10] + "_" + txns[key],
-                "Staff": cols[12].trim(),
+                "Staff": cols[12].trim().replace('"', ''),
             };
             trans.push(txn);
         }
-	if (cols.length == 8) {
-	    cols.shift();
-	}
+	//if (cols.length == 8) {
+	//    cols.shift();
+	//}
 
-        if (cols.length == 7 && cols[0] != "Name" && cols[1] != "\"\"") {
-            var key = cols[0] + cols[2];
+        if (cols.length == 8) {
+            cols[0] = cols[0].replace('"','').trim()
+            var key = cols[0];
             if (!(key in ss)) {
                 ss[key] = 0;
             } else {
-                return;
+                //return;
             }
             ss[key] += 1;
             var now = new Date(cols[2].split(' ')[0]);
             var s = {
                 "dow" : now.toString().split(' ')[0],
-                "Name": cols[0].trim(),
+                "Name": cols[0],
                 "Staff Type": cols[1],
                 "Clock-In-Date": cols[2].split(' ')[0],
                 "Clock-In": cols[2],
                 "Clock-Out": cols[3],
                 "Duration": Number(cols[4]),
-                "Hourly Rate": Number(cols[5].replace(/[^0-9.-]+/g,"")),
-                "Pay": Number(cols[6].replace(/[^0-9.-]+/g,"")),
+                "Hourly Rate": Number(cols[6].replace(/[^0-9.-]+/g,"")),
+                "Pay": Number(cols[7].replace(/[^0-9.-]+/g,"")),
             };
             if (s['Staff Type'] == 'Bar back') {
                 s['Staff Type'] = 'Bartender';
@@ -494,12 +500,12 @@ function parseFile(allRows) {
 	if (cols.length == 10) {
 	    cols.shift();
 	}
-        if (cols.length == 9 && cols[0] != "Staff Name" && cols[1] != "\"\"") {
+        if (cols.length == 8) {
             var emp = cols[0].trim();
-            var bstart = parseDate(cols[4]);
+            var bstart = parseDate(cols[2]);
             var bend = Date();
-            if (cols[5] != "\"\"") {
-                bend = parseDate(cols[5]);
+            if (cols[3] != "\"\"") {
+                bend = parseDate(cols[3]);
             }
             var duration = Math.abs(bend - bstart)/ 36e5;
             if (duration == 0) return;
@@ -511,18 +517,18 @@ function parseFile(allRows) {
                 if (s['Clock-Out'] != "\"\"") {
                     send = parseDate(s['Clock-Out']);
                 }
-                if (bstart >= sstart && bstart <= send) {
+                if (bstart > sstart && bstart < send) {
                     s = JSON.parse(JSON.stringify(s));
-                    shift[emp][i]['Clock-Out'] = cols[4];
+                    shift[emp][i]['Clock-Out'] = cols[3];
                     shift[emp][i]['Duration'] = Math.abs(bstart - sstart)/36e5;
-                    if (cols[5] != "\"\"") {
-                        s['Clock-In'] = cols[5];
+                    if (cols[2] != "\"\"") {
+                        s['Clock-In'] = cols[2];
                         s['Duration'] = Math.abs(send - bend)/36e5;
                         shift[emp].push(s);
                     }
                     break;
                 }
-            }   
+            }
         }
      });
     document.getElementById('debug_text').innerHTML = "<a> Got "+trans.length+" transactions</a>"
