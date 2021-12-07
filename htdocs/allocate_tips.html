@@ -435,7 +435,7 @@ function parseFile(allRows) {
         }
         var cols = row.split('","');
         cols[0] = cols[0].replace('"','').trim()
-        if (cols[0] == "Name" ) {
+        if (cols[0] == "Name" || cols[0].startsWith("REPORT")) {
             return;
         }
 
@@ -534,11 +534,13 @@ function parseFile(allRows) {
     document.getElementById('debug_text').innerHTML = "<a> Got "+trans.length+" transactions</a>"
 }
 
-function processFromFile(evt) {
-    var file = evt.target.files[0];
+function processFromFile() {
+    var shiftsFile = document.getElementById('fileinput2').files[0];
+    var txnsFile = document.getElementById('fileinput3').files[0];
+    //var file = evt.target.files[0];
     trans = [];
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
-    if (!file) {
+    if (!shiftsFile || !txnsFile) {
         return
     }
     var r = new FileReader();
@@ -546,9 +548,16 @@ function processFromFile(evt) {
         var contents = e.target.result;
         var allRows = contents.split('\n');
         parseFile(allRows);
+    };
+    r.readAsText(shiftsFile);
+    var r = new FileReader();
+    r.onload = function(e) {
+        var contents = e.target.result;
+        var allRows = contents.split('\n');
+        parseFile(allRows);
         processData();
     };
-    r.readAsText(file);
+    r.readAsText(txnsFile);
 }
 
 var batch = [];
@@ -772,7 +781,11 @@ window.onload = function() {
                 <input id="scanData" type="button" value="Generate" onclick="generateTips();" />
               </td>
               <td>
-                <input type="file" id="fileinput2" accept='.csv'/>
+                Shifts
+                <input type="file" id="fileinput2" accept='.csv'/><br/>
+                Transactions
+                <input type="file" id="fileinput3" accept='.csv'/><br/>
+                <input id="processFromFile" type="button" value="Generate" onclick="processFromFile();" />
               </td>
             </tr>
         </table>
@@ -811,7 +824,7 @@ window.onload = function() {
 </div>
 <script>
     document.getElementById('fileinput1').addEventListener('change', uploadTransactions, false);
-    document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
+    //document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
 </script>
 </body>
 </html>
