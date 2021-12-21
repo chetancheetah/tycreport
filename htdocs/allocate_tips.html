@@ -468,6 +468,9 @@ function parseFile(allRows) {
 	//}
 
         if (cols.length == 8) {
+            if (cols[2] == "") {
+		    return;
+	    }
             cols[0] = cols[0].replace('"','').trim()
             var key = cols[0];
             if (!(key in ss)) {
