@@ -467,7 +467,7 @@ function parseFile(allRows) {
 	//    cols.shift();
 	//}
 
-        if (cols.length == 8) {
+        if (cols.length == 10) {
             if (cols[2] == "") {
 		    return;
 	    }
@@ -488,8 +488,8 @@ function parseFile(allRows) {
                 "Clock-In": cols[2],
                 "Clock-Out": cols[3],
                 "Duration": Number(cols[4]),
-                "Hourly Rate": Number(cols[6].replace(/[^0-9.-]+/g,"")),
-                "Pay": Number(cols[7].replace(/[^0-9.-]+/g,"")),
+                "Hourly Rate": Number(cols[8].replace(/[^0-9.-]+/g,"")),
+                "Pay": Number(cols[9].replace(/[^0-9.-]+/g,"")),
             };
             if (s['Staff Type'] == 'Bar back') {
                 s['Staff Type'] = 'Bartender';
@@ -500,10 +500,10 @@ function parseFile(allRows) {
                 shift[s['Name']] = [s];
             }
         }
-	if (cols.length == 10) {
-	    cols.shift();
-	}
-        if (cols.length == 8) {
+	//if (cols.length == 10) {
+	//    cols.shift();
+	//}
+        if (cols.length == 10) {
             var emp = cols[0].trim();
             var bstart = parseDate(cols[2]);
             var bend = Date();
@@ -546,21 +546,21 @@ function processFromFile() {
     if (!shiftsFile || !txnsFile) {
         return
     }
-    var r = new FileReader();
-    r.onload = function(e) {
+    var r1 = new FileReader();
+    r1.onload = function(e) {
         var contents = e.target.result;
         var allRows = contents.split('\n');
         parseFile(allRows);
     };
-    r.readAsText(shiftsFile);
-    var r = new FileReader();
-    r.onload = function(e) {
+    r1.readAsText(shiftsFile);
+    var r2 = new FileReader();
+    r2.onload = function(e) {
         var contents = e.target.result;
         var allRows = contents.split('\n');
         parseFile(allRows);
         processData();
     };
-    r.readAsText(txnsFile);
+    r2.readAsText(txnsFile);
 }
 
 var batch = [];
