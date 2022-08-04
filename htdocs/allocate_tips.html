@@ -474,6 +474,9 @@ function parseFile(allRows) {
 	//}
 
         if (cols.length == 10) {
+            if (cols[2] == "") {
+		    return;
+	    }
             cols[0] = cols[0].replace('"','').trim()
             var key = cols[0];
             if (!(key in ss)) {
@@ -504,7 +507,7 @@ function parseFile(allRows) {
             }
         }
 	//if (cols.length == 10) {
-	    //cols.shift();
+	//    cols.shift();
 	//}
         if (cols.length == 10) {
             var emp = cols[0].trim();
