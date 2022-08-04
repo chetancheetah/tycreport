@@ -56,15 +56,15 @@ google.charts.load('current', {'packages':['table']});
   var base_url = 'theyellowchillisantaclara.com/tycreport';
 //  var base_url = 'localhost:8888';
 
-  var tipback_server = 0;
+  var tipback_server = 1;
   var shared_tips= {
     'Kitchen'  : 0.08,   //  8%
     'Busser' : 0.15,     // 15%
-    'Food Runner' : 0.05,//  5%
+    'Food Runner' : 0.1,//  10%
     'Hostess' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
-var server_share = 0.65;
+var server_share = 0.60;
 
 function parseDate(s) {
    var date = s.split(' ')[0].split('-');
@@ -82,6 +82,7 @@ function processData() {
 
     var sales = 0;
     var tips = 0;
+    var extra_tips = 0;
     var grat = 0;
     var pay = 0;
     var cash = 0;
@@ -196,10 +197,12 @@ function processData() {
                     }
                 }
             }
-//            worked = 0;
+            //            worked = 0;
+            extra_tips = 0;
             if (worked == 0) {
                 if (tipback_server == 1 && trans[i]['Staff'] in report) {
-                    report[trans[i]['Staff']]['tips'] += (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]
+                    extra_tips = (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff];
+                    report[trans[i]['Staff']]['extra-tips'] += extra_tips;
                 } else {
                     report['Kitchen']['tips'] += (trans[i]['Tip'])*shared_tips[staff] + (trans[i]['Gratuity'])*shared_tips[staff]
                 }
@@ -216,6 +219,7 @@ function processData() {
                         if  (fr <= tran && tran <= to) {
                             if (once == 1) {
                                 shift[name][j]['tips'] += trans[i]['Tip']*server_share + trans[i]['Gratuity']*server_share;
+                                shift[name][j]['extra-tips'] += extra_tips;
                                 once = 0
                             }
                             if (shift[name][j][staff] == 0) {
@@ -273,7 +277,7 @@ function processData() {
         var btn = document.getElementById("div_"+r.replace(' ', '_'));
         if (!btn) continue;
         btn.onclick = function (event) {
-            var cols = ['Name', 'Clock-In','Clock-Out', 'dow', 'Staff Type','Duration','Hourly Rate','Pay','tips'];
+            var cols = ['Name', 'Clock-In','Clock-Out', 'dow', 'Staff Type','Duration','Hourly Rate','Pay','tips', 'extra-tips'];
             var emp = event.target.innerText;
             var data1 = new google.visualization.DataTable();
             for (var i = 0; i < cols.length; i++) {
@@ -283,6 +287,7 @@ function processData() {
             var td = 0;
             var tp = 0;
             var tt = 0;
+            var et = 0;
             var rows1 = [];
             for (var i = 0; i <  report[emp]['shifts'].length; i++) {
                 var row1 = [];
@@ -297,9 +302,10 @@ function processData() {
                 td += report[emp]['shifts'][i]['Duration'];
                 tp += report[emp]['shifts'][i]['Pay'];
                 tt += report[emp]['shifts'][i]['tips'];
+                et += report[emp]['shifts'][i]['extra-tips'];
                 rows1[rows1.length] = row1
             }
-            rows1[rows1.length] = ["Total", "", "", "", "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2)]
+            rows1[rows1.length] = ["Total", "", "", "", "",  td.toFixed(2), "", tp.toFixed(2), tt.toFixed(2), et.toFixed(2)]
             data1.addRows(rows1);
             var table1 = new google.visualization.Table(document.getElementById('tip_details'));
             table1.draw(data1, {showRowNumber: true, width: '100%', sortColumn:0, allowHtml:true, page: "enable", pageSize: 20});
@@ -435,7 +441,7 @@ function parseFile(allRows) {
         }
         var cols = row.split('","');
         cols[0] = cols[0].replace('"','').trim()
-        if (cols[0] == "Name" ) {
+        if (cols[0] == "Name" || cols[0].startsWith("REPORT")) {
             return;
         }
 
@@ -467,7 +473,7 @@ function parseFile(allRows) {
 	//    cols.shift();
 	//}
 
-        if (cols.length == 8) {
+        if (cols.length == 10) {
             cols[0] = cols[0].replace('"','').trim()
             var key = cols[0];
             if (!(key in ss)) {
@@ -485,8 +491,8 @@ function parseFile(allRows) {
                 "Clock-In": cols[2],
                 "Clock-Out": cols[3],
                 "Duration": Number(cols[4]),
-                "Hourly Rate": Number(cols[6].replace(/[^0-9.-]+/g,"")),
-                "Pay": Number(cols[7].replace(/[^0-9.-]+/g,"")),
+                "Hourly Rate": Number(cols[8].replace(/[^0-9.-]+/g,"")),
+                "Pay": Number(cols[9].replace(/[^0-9.-]+/g,"")),
             };
             if (s['Staff Type'] == 'Bar back') {
                 s['Staff Type'] = 'Bartender';
@@ -497,10 +503,10 @@ function parseFile(allRows) {
                 shift[s['Name']] = [s];
             }
         }
-	if (cols.length == 10) {
-	    cols.shift();
-	}
-        if (cols.length == 8) {
+	//if (cols.length == 10) {
+	    //cols.shift();
+	//}
+        if (cols.length == 10) {
             var emp = cols[0].trim();
             var bstart = parseDate(cols[2]);
             var bend = Date();
@@ -534,21 +540,30 @@ function parseFile(allRows) {
     document.getElementById('debug_text').innerHTML = "<a> Got "+trans.length+" transactions</a>"
 }
 
-function processFromFile(evt) {
-    var file = evt.target.files[0];
+function processFromFile() {
+    var shiftsFile = document.getElementById('fileinput2').files[0];
+    var txnsFile = document.getElementById('fileinput3').files[0];
+    //var file = evt.target.files[0];
     trans = [];
     shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
-    if (!file) {
+    if (!shiftsFile || !txnsFile) {
         return
     }
-    var r = new FileReader();
-    r.onload = function(e) {
+    var r1 = new FileReader();
+    r1.onload = function(e) {
+        var contents = e.target.result;
+        var allRows = contents.split('\n');
+        parseFile(allRows);
+    };
+    r1.readAsText(shiftsFile);
+    var r2 = new FileReader();
+    r2.onload = function(e) {
         var contents = e.target.result;
         var allRows = contents.split('\n');
         parseFile(allRows);
         processData();
     };
-    r.readAsText(file);
+    r2.readAsText(txnsFile);
 }
 
 var batch = [];
@@ -651,12 +666,12 @@ function change_location(val) {
         shared_tips= {
             'Kitchen'  : 0.08,   //  8%
             'Busser' : 0.15,     // 15%
-            'Food Runner' : 0.05,//  5%
+            'Food Runner' : 0.1,//  10%
             'Hostess' : 0.02,    //  2%
             'Bartender': 0.05,   //  5%
         };
-        server_share = 0.65;
-        tipback_server = 0;
+        server_share = 0.60;
+        tipback_server = 1;
     }
     if (val == 'tycla' || val == 'ibgfremont') {
         shared_tips= {
@@ -772,7 +787,11 @@ window.onload = function() {
                 <input id="scanData" type="button" value="Generate" onclick="generateTips();" />
               </td>
               <td>
-                <input type="file" id="fileinput2" accept='.csv'/>
+                Shifts
+                <input type="file" id="fileinput2" accept='.csv'/><br/>
+                Transactions
+                <input type="file" id="fileinput3" accept='.csv'/><br/>
+                <input id="processFromFile" type="button" value="Generate" onclick="processFromFile();" />
               </td>
             </tr>
         </table>
@@ -811,7 +830,7 @@ window.onload = function() {
 </div>
 <script>
     document.getElementById('fileinput1').addEventListener('change', uploadTransactions, false);
-    document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
+    //document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
 </script>
 </body>
 </html>
