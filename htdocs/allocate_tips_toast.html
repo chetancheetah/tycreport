@@ -58,13 +58,12 @@ google.charts.load('current', {'packages':['table']});
 
   var tipback_server = 1;
   var shared_tips= {
-    'Kitchen'  : 0.08,   //  8%
-    'Busser' : 0.15,     // 15%
-    'Runner' : 0.1,//  10%
-    'Hostess' : 0.02,    //  2%
+    'Kitchen'  : 0.18,   //  18%
+    'Busser' : 0.25,     // 25% // both busser and runner
+    'Host' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
-var server_share = 0.60;
+var server_share = 0.50;
 
   function parseDate(s) {
     var f    = s.split(' ');
@@ -362,7 +361,7 @@ function generateTips() {
         }
     };
     trans = []
-    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '01/01/00 00:00 AM', 'Clock-Out': '01/01/99 00:00 AM', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     $.ajax({
         url : 'http://'+base_url+'/request.php',
         method : 'POST',
@@ -410,6 +409,9 @@ function generateTips() {
                     s['Duration'] = Number(s['Duration']);
                     s['Hourly Rate'] = Number(s['Hourly Rate']);
                     s['Pay'] = Number(s['Pay']);
+                    if (s['Staff Type'] == 'Runner') {
+                        s['Staff Type'] = 'Busser'
+                    }
                     if (s['Staff Type'] == 'Bar back') {
                         s['Staff Type'] = 'Bartender'
                     }
@@ -491,6 +493,9 @@ function parseFile(allRows) {
             if (s['Staff Type'] == 'Bar back') {
                 s['Staff Type'] = 'Bartender';
             }
+            if (s['Staff Type'] == 'Runner') {
+                s['Staff Type'] = 'Busser';
+            }
             if (s['Name'] in shift) {
                 shift[s['Name']].push(s);
             } else {
@@ -536,7 +541,7 @@ function processFromFile() {
     var txnsFile = document.getElementById('fileinput3').files[0];
     //var file = evt.target.files[0];
     trans = [];
-    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '01/01/00 00:00 AM', 'Clock-Out': '01/01/99 00:00 AM', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     if (!shiftsFile || !txnsFile) {
         return
     }
@@ -585,7 +590,7 @@ function uploadTransactions(evt) {
     document.getElementById('textarea').innerHTML += "<a>Importing transactions and shifts into DB. Please wait...</a>" + "</br>";
     var file = evt.target.files[0];
     trans = [];
-    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '2000-01-01 00:00', 'Clock-Out': '2100-01-01 00:00', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
+    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '01/01/00 00:00 AM', 'Clock-Out': '01/01/99 00:00 AM', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
     var txns = {}
     if (file) {
         var r = new FileReader();
@@ -653,26 +658,14 @@ function uploadTransactions(evt) {
 }
 
 function change_location(val) {
-    if (val == 'tycsc') {
-        shared_tips= {
-            'Kitchen'  : 0.08,   //  8%
-            'Busser' : 0.15,     // 15%
-            'Runner' : 0.1,//  10%
-            'Hostess' : 0.02,    //  2%
-            'Bartender': 0.05,   //  5%
-        };
-        server_share = 0.60;
-        tipback_server = 1;
-    }
     if (val == 'tycla' || val == 'ibgfremont') {
         shared_tips= {
-            'Kitchen'  : 0.08,   //  8%
-            'Busser' : 0.10,     // 10%
-            'Runner' : 0.05,//  5%
-            'Hostess' : 0.02,    //  2%
+            'Kitchen'  : 0.18,   //  8%
+            'Busser' : 0.25,     // 10%
+            'Host' : 0.02,    //  2%
             'Bartender': 0.05,   //  5%
         };
-        server_share = 0.7;
+        server_share = 0.5;
         tipback_server = 1;
     }
 
@@ -790,8 +783,7 @@ window.onload = function() {
     </tr>
     <tr>
     <td>Location
-    <select name="location" id="location" value="tycsc" onchange="change_location(this.value)">
-    <option>tycsc</option>
+    <select name="location" id="location" value="tycla" onchange="change_location(this.value)">
     <option>tycla</option>
     <option>ibgfremont</option>
     </select>
