@@ -60,17 +60,23 @@ google.charts.load('current', {'packages':['table']});
   var shared_tips= {
     'Kitchen'  : 0.08,   //  8%
     'Busser' : 0.15,     // 15%
-    'Food Runner' : 0.1,//  10%
+    'Runner' : 0.1,//  10%
     'Hostess' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
 var server_share = 0.60;
 
-function parseDate(s) {
-    //var date = s.split(' ')[0].split('/');
-    //var time = s.split(' ')[1].split(':');
-    return new Date(s);
-    //return new Date(parseInt(date[0]), parseInt(date[1]), parseInt(date[2]), parseInt(time[0]), parseInt(time[1]), 0);
+  function parseDate(s) {
+    var f    = s.split(' ');
+    var date = f[0].split('/');
+    var time = f[1].split(':');
+    var ampm = f[2];
+    //return new Date(s);
+    var pm = 0;
+    if (ampm == "PM") {
+        pm = 12;
+    }
+    return new Date(parseInt(date[2])+2000, parseInt(date[0])-1, parseInt(date[1]), parseInt(time[0])+pm, parseInt(time[1]), 0);
 }
 var report = {};
 var trans = [];
@@ -112,7 +118,7 @@ function processData() {
             for (t in shared_tips) {
                 shifts[i][t] = 0;
             }
-            ndate = s['Clock-In'].split(' ')[0].split('-')[2];
+            ndate = s['Clock-In'].split(' ')[0];
             if (dat != ndate) {
                 old['hours'] = hours;
                 hours = 0.0;
@@ -651,7 +657,7 @@ function change_location(val) {
         shared_tips= {
             'Kitchen'  : 0.08,   //  8%
             'Busser' : 0.15,     // 15%
-            'Food Runner' : 0.1,//  10%
+            'Runner' : 0.1,//  10%
             'Hostess' : 0.02,    //  2%
             'Bartender': 0.05,   //  5%
         };
@@ -662,7 +668,7 @@ function change_location(val) {
         shared_tips= {
             'Kitchen'  : 0.08,   //  8%
             'Busser' : 0.10,     // 10%
-            'Food Runner' : 0.05,//  5%
+            'Runner' : 0.05,//  5%
             'Hostess' : 0.02,    //  2%
             'Bartender': 0.05,   //  5%
         };
