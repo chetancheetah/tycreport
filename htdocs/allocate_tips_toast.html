@@ -53,19 +53,16 @@ tr:nth-child(even) {
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script type="text/javascript">
 google.charts.load('current', {'packages':['table']});
-  var base_url = 'theyellowchillisantaclara.com/tycreport';
-//  var base_url = 'localhost:8888';
 
-  var tipback_server = 1;
-  var shared_tips= {
+var tipback_server = 1;
+var shared_tips= {
     'Kitchen'  : 0.18,   //  18%
     'Busser' : 0.25,     // 25% // both busser and runner
     'Host' : 0.02,    //  2%
     'Bartender': 0.05,   //  5%
 };
 var server_share = 0.50;
-
-  function parseDate(s) {
+function parseDate(s) {
     var f    = s.split(' ');
     var date = f[0].split('/');
     var time = f[1].split(':');
@@ -335,98 +332,6 @@ function processData() {
 
 }
 
-function generateTips() {
-    document.getElementById('textarea').innerHTML = ""
-    var from = document.getElementById("from_date").value
-    var to = document.getElementById("to_date").value
-    if (from == "" || to == "") {
-        document.getElementById('textarea').innerHTML = "<a>Please select the correct timeframe</a>"
-        return;
-    }
-    from_dt = new Date(from)
-    to_dt   = new Date(to)
-    if (from_dt > to_dt) {
-        document.getElementById('textarea').innerHTML = "<a>from cannot be more than less</a>"
-        return;
-    }
-    var params = {
-        TableName: "Transactions",
-        FilterExpression: "#dt between :start_dt and :end_dt",
-        ExpressionAttributeNames: {
-            "#dt": "Bill Date"
-        },
-        ExpressionAttributeValues: {
-            ":start_dt": from,
-            ":end_dt": to,
-        }
-    };
-    trans = []
-    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '01/01/00 00:00 AM', 'Clock-Out': '01/01/99 00:00 AM', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
-    $.ajax({
-        url : 'http://'+base_url+'/request.php',
-        method : 'POST',
-        data:  params,
-        success: onTxnScan,
-    });
-
-    //docClient.scan(params, onTxnScan);
-    document.getElementById('debug_text').innerHTML = "";
-    function onTxnScan(data) {
-        if (data == 'Fail') {
-            document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
-        } else {
-            document.getElementById('debug_text').innerHTML += "<a> Got "+data.length+" transactions</a>"
-            data.forEach(function(t) {
-                t['Applied to Bill'] = Number(t['Applied to Bill']);
-                t['Tip'] = Number(t['Tip']);
-                t['Payment Amount'] = Number(t['Payment Amount']);
-                t['Gratuity'] = Number(t['Gratuity']);
-                trans.push(t);
-            });
-        }
-        var params = {
-            TableName: "Shifts",
-            FilterExpression: "#dt between :start_dt and :end_dt",
-            ExpressionAttributeNames: {
-                "#dt": "Clock-In-Date"
-            },
-            ExpressionAttributeValues: {
-                ":start_dt": from,
-                ":end_dt": to,
-            }
-        };
-        $.ajax({
-            url : 'http://'+base_url+'/request.php',
-            method : 'POST',
-            data:  params,
-            success: onShiftScan,
-        });
-        function onShiftScan(data) {
-            if (data == 'Fail') {
-                document.getElementById('textarea').innerHTML += "Unable to scan the table: " + "\n" + JSON.stringify(err, undefined, 2);
-            } else {
-                data.forEach(function(s) {
-                    s['Duration'] = Number(s['Duration']);
-                    s['Hourly Rate'] = Number(s['Hourly Rate']);
-                    s['Pay'] = Number(s['Pay']);
-                    if (s['Staff Type'] == 'Runner') {
-                        s['Staff Type'] = 'Busser'
-                    }
-                    if (s['Staff Type'] == 'Bar back') {
-                        s['Staff Type'] = 'Bartender'
-                    }
-                    if (s['Name'] in shift) {
-                       shift[s['Name']].push(s);
-                    } else {
-                      shift[s['Name']] = [s]
-                    }
-                });
-            }
-            processData();
-        }
-    }
-}
-
 function parseFile(allRows) {
     var txns = {}
     var ss = {}
@@ -562,189 +467,30 @@ function processFromFile() {
     r2.readAsText(txnsFile);
 }
 
-var batch = [];
-var batch_count = 0;
-function uploadToAWS(data) {
-    if (batch_count == batch.length) {
-        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+" Successfully!!</a></br>";
-        return;
-    }
-    if (data == 'Success') {
-        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+" Successfully!!</a></br>";
-    } else {
-        document.getElementById('textarea').innerHTML +=
-        document.getElementById('textarea').innerHTML += "<a>Uploaded data batch_count = "+batch_count+"/"+batch.length+ " Unable upload data "  + JSON.stringify(data, undefined, 2) + "</a></br>";
-    }
-    $.ajax({
-        url : 'http://'+base_url+'/upload.php',
-        method : 'POST',
-        data: batch[batch_count],
-        success: uploadToAWS,
-    });
-    //docClient.batchWrite(batch[batch_count], uploadToAWS);
-    batch_count += 1;
+function recalc() {
+    server_share = document.getElementById('server_tips_b').value / 100.0;
+    shared_tips['Kitchen'] = document.getElementById('kitchen_tips_b').value / 100.0;
+    shared_tips['Busser'] = document.getElementById('busser_tips_b').value / 100.0;
+    shared_tips['Host'] = document.getElementById('host_tips_b').value / 100.0;
+    shared_tips['Bartender'] = document.getElementById('bartender_tips_b').value / 100.0;
+    processData();
 }
 
-function uploadTransactions(evt) {
-    document.getElementById('textarea').innerHTML = "";
-    document.getElementById('textarea').innerHTML += "<a>Importing transactions and shifts into DB. Please wait...</a>" + "</br>";
-    var file = evt.target.files[0];
-    trans = [];
-    shift =  {'Kitchen' : [ {'Name' : 'Kitchen', 'Staff Type' : 'Kitchen', 'Clock-In' : '01/01/00 00:00 AM', 'Clock-Out': '01/01/99 00:00 AM', 'Duration' : '0.0', 'Hourly Rate' : 0.0, 'Pay' : '0.0', } ]}
-    var txns = {}
-    if (file) {
-        var r = new FileReader();
-        r.onload = function(e) {
-            var contents = e.target.result;
-            var allRows = contents.split('\n');
-            parseFile(allRows);
-            var params = {
-                'RequestItems': {
-                    "Transactions" : [],
-                }
-            }
-            batch = [];
-            for (var i =0; i < trans.length; i++) {
-                params['RequestItems']['Transactions'].push({
-                        "PutRequest" : {
-                            "Item" : trans[i],
-                                }
-                    });
-                if (((i+1)%25)==0) {
-                    batch[batch.length] = JSON.parse(JSON.stringify(params));
-                    params['RequestItems']['Transactions'] = [];
-                }
-            }
-            if (params['RequestItems']['Transactions'].length) {
-                batch[batch.length] = JSON.parse(JSON.stringify(params));
-            }
-            params = {
-                'RequestItems': {
-                    "Shifts" : [],
-                }
-            }
-            var j = 0;
-            for (var s in shift) {
-                for (var i = 0; i < shift[s].length; i++) {
-                    params['RequestItems']['Shifts'].push({
-                        "PutRequest" : {
-                            "Item" : shift[s][i],
-                        }
-                        });
-                    if (((j+1)%25)==0) {
-                        batch[batch.length] = JSON.parse(JSON.stringify(params));
-                        params['RequestItems']['Shifts'] = [];
-                    }
-                    j += 1;
-                }
-            }
-            if (params['RequestItems']['Shifts'].length) {
-                batch[batch.length] = JSON.parse(JSON.stringify(params));
-            }
-            batch_count = 0;
-            $.ajax({
-                url : 'http://'+base_url+'/upload.php',
-                method : 'POST',
-                data:  batch[batch_count],
-                success: uploadToAWS,
-            });
-            //docClient.batchWrite(batch[batch_count], uploadToAWS);
-            batch_count += 1;
-        }
-        r.readAsText(file);
-    } else {
-        alert("Could not read transaction data file");
-    }
+function tipsChanged(id, val) {
+    document.getElementById(id).value=val;
+    recalc();
 }
 
-function change_location(val) {
-    if (val == 'tycla' || val == 'ibgfremont') {
-        shared_tips= {
-            'Kitchen'  : 0.18,   //  8%
-            'Busser' : 0.25,     // 10%
-            'Host' : 0.02,    //  2%
-            'Bartender': 0.05,   //  5%
-        };
-        server_share = 0.5;
-        tipback_server = 1;
-    }
 
+function resetTips() {
+    document.getElementById('server_tips_a').value = document.getElementById('server_tips_b').value = 50;
+    document.getElementById('kitchen_tips_a').value = document.getElementById('kitchen_tips_b').value = 18;
+    document.getElementById('busser_tips_a').value = document.getElementById('busser_tips_b').value = 25;
+    document.getElementById('host_tips_a').value = document.getElementById('host_tips_b').value = 2;
+    document.getElementById('bartender_tips_a').value = document.getElementById('bartender_tips_b').value = 5;
+    recalc();
+    processData();
 }
-
-function change_emp(val) {
-    document.getElementById('emp_textarea').innerHTML = '';
-}
-function onEmpUpdate(data) {
-    if (data == 'Success') {
-        document.getElementById('emp_textarea').innerHTML = 'Updated';
-    } else {
-        document.getElementById('emp_textarea').innerHTML = 'Failed to update';
-    }
-}
-function updateEmployee() {
-    var name = document.getElementById("emp").value
-    var pass = document.getElementById("pass").value
-    if (name == 'Select') {
-        document.getElementById('emp_textarea').innerHTML = "Please select a Employee!";
-        return;
-    }
-    var params = {
-        'RequestItems': {
-            "Employees" : [],
-        }
-    }
-    params['RequestItems']['Employees'].push({
-        "PutRequest" : {
-            "Item" : {
-                'name' : name,
-                'pass' : pass,
-            }
-        }
-    });
-
-    $.ajax({
-        url : 'http://'+base_url+'/upload.php',
-        method : 'POST',
-        data:  params,
-        success: onEmpUpdate,
-        error: onEmpUpdate,
-    });
-}
-
-function onEmpScan(data) {
-    if (data == 'Fail') {
-        document.getElementById('emp_textarea').innerHTML += "Unable to scan the table: " + "\n";
-    } else {
-        data.forEach(function(d) {
-            // get reference to select element
-            var sel = document.getElementById('emp');
-            // create new option element
-            var opt = document.createElement('option');
-            // create text node to add to option element (opt)
-            opt.appendChild( document.createTextNode(d['name']) );
-            // set value property of opt
-            opt.value = d['name'];
-            // add opt to end of select box (sel)
-            sel.appendChild(opt);
-        });
-    }
-}
-window.onload = function() {
-    /* get list of employees */
-    var params = {
-        TableName: "Employees",
-        ExpressionAttributeValues: {
-            ":name": '*',
-        }
-    };
-    $.ajax({
-        url : 'http://'+base_url+'/request.php',
-        method : 'POST',
-        data:  params,
-        success: onEmpScan,
-    });
-};
-
 
 </script>
 </head>
@@ -755,26 +501,37 @@ window.onload = function() {
         <table border = 1>
             <caption>Allocate Tips</caption>
             <tr>
-              <td> Upload to Cloud </td>
-              <td> From Cloud </td>
-              <td> File </td>
+              <td> Allocations </td>
+              <td> Options </td>
+              <td> Input </td>
             </tr>
             <tr>
               <td>
-                <input type="file" id="fileinput1" accept='.csv'/>
+                Server
+                <input type="range" id="server_tips_a" min="25" max="100" value="50" step="5" onchange="tipsChanged('server_tips_b', this.value);"/>
+                <input type="text" id="server_tips_b" value="50" onchange="tipsChanged('server_tips_a', this.value);" size=4><br/>
+                Busser/Runner
+                <input type="range" id="busser_tips_a" min="0" max="50" value="25" step="5" onchange="tipsChanged('busser_tips_b', this.value);"/>
+                <input type="text" id="busser_tips_b" value="25" onchange="tipsChanged('busser_tips_a', this.value);" size=4><br/>
+                Bartender
+                <input type="range" id="bartender_tips_a" min="0" max="50" value="20" step="5" onchange="tipsChanged('bartender_tips_b', this.value);"/>
+                <input type="text" id="bartender_tips_b" value="5" onchange="tipsChanged('bartender_tips_a', this.value);" size=4><br/>
+                Host
+                <input type="range" id="host_tips_a" min="0" max="10" value="2" step="1" onchange="tipsChanged('host_tips_b', this.value);"/>
+                <input type="text" id="host_tips_b" value="2" onchange="tipsChanged('host_tips_a', this.value);" size=4><br/>
+                Kitchen
+                <input type="range" id="kitchen_tips_a" min="0" max="25" value="18" step="1" onchange="tipsChanged('kitchen_tips_b', this.value);"/>
+                <input type="text" id="kitchen_tips_b" value="18" onchange="tipsChanged('kitchen_tips_a', this.value);" size=4><br/>
+
+                <input id="resetTips" type="button" value="Reset" onclick="resetTips();" />
+                <input id="reCalcTips" type="button" value="Re Calculate" onclick="recalc();" />
+
               </td>
               <td>
-                From
-                <input id="from_date" type="date" value="2019-08-01">
-                To
-                <input id="to_date" type="date" value="2019-08-31">
-                <input id="scanData" type="button" value="Generate" onclick="generateTips();" />
               </td>
               <td>
-                Shifts
-                <input type="file" id="fileinput2" accept='.csv'/><br/>
-                Transactions
-                <input type="file" id="fileinput3" accept='.csv'/><br/>
+                Transactions<input type="file" id="fileinput3" accept='.csv'/><br/>
+                Shifts<input type="file" id="fileinput2" accept='.csv'/><br/>
                 <input id="processFromFile" type="button" value="Generate" onclick="processFromFile();" />
               </td>
             </tr>
@@ -782,19 +539,7 @@ window.onload = function() {
     </td>
     </tr>
     <tr>
-    <td>Location
-    <select name="location" id="location" value="tycla" onchange="change_location(this.value)">
-    <option>tycla</option>
-    <option>ibgfremont</option>
-    </select>
-    Employee
-    <select name="emp" id="emp" value="Select" onchange="change_emp(this.value)">
-    <option>Select</option>
-    </select>
-    Password:
-    <input id="pass" name="password" minlength="10" required></input>
-    <input id="loginBtn" type="button" value="update" onclick="updateEmployee();" />
-    <div id= "emp_textarea"></div>
+    <td>Allocations
     </td>
     </tr>
 </table>
@@ -811,9 +556,5 @@ window.onload = function() {
     <div id="tip_details"></div>
   </div>
 </div>
-<script>
-    document.getElementById('fileinput1').addEventListener('change', uploadTransactions, false);
-    //document.getElementById('fileinput2').addEventListener('change', processFromFile, false);
-</script>
 </body>
 </html>
